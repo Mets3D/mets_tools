@@ -31,7 +31,6 @@ bl_info = {
 import bpy
 
 from . import create_lightmap_uvs
-from . import mark_sharp_by_autosmooth
 from . import make_physics_bones
 from . import cleanup_blend
 from . import make_modifiers_consistent
@@ -56,8 +55,6 @@ from . import weld_normals
 
 def register():
 	from bpy.utils import register_class
-	#create_lightmap_uvs.register()
-	mark_sharp_by_autosmooth.register()
 	make_physics_bones.register()
 	cleanup_blend.register()
 	make_modifiers_consistent.register()
@@ -81,13 +78,9 @@ def register():
 	weld_normals.register()
 
 	#bpy.types.VIEW3D_MT_pose_specials.append(draw_func_MakePhysicsBones)
-	#bpy.types.VIEW3D_MT_edit_mesh.append(draw_func_MarkSharpByAutoSmooth)
-	#bpy.types.VIEW3D_MT_uv_map.append(draw_func_CreateLightMapUVs)
 
 def unregister():
 	from bpy.utils import unregister_class
-	#create_lightmap_uvs.unregister()
-	mark_sharp_by_autosmooth.unregister()
 	make_physics_bones.unregister()
 	cleanup_blend.unregister()
 	make_modifiers_consistent.unregister()
@@ -111,5 +104,3 @@ def unregister():
 	weld_normals.unregister()
 	
 	#bpy.types.VIEW3D_MT_pose_specials.remove(draw_func_MakePhysicsBones)
-	#bpy.types.VIEW3D_MT_edit_mesh.remove(draw_func_MarkSharpByAutoSmooth)
-	#bpy.types.VIEW3D_MT_uv_map.remove(draw_func_CreateLightMapUVs)
