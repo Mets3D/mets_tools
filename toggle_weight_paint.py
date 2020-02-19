@@ -9,11 +9,15 @@ import bpy
 # When running the operator again, it should restore all modes and shading settings.
 # You need to set up your own keybind for this operator.
 
+coll_name = "temp_weight_paint_armature"
+
 class ToggleWeightPaint(bpy.types.Operator):
 	""" Toggle weight paint mode properly with a single operator. """
 	bl_idname = "object.weight_paint_toggle"
 	bl_label = "Toggle Weight Paint Mode"
 	bl_options = {'REGISTER', 'UNDO'}
+
+	local_view = bpy.props.BoolProperty(name="Local View", description="Enter Local view with the mesh and armature")
 
 	def execute(self, context):
 		obj = context.object
@@ -26,29 +30,38 @@ class ToggleWeightPaint(bpy.types.Operator):
 		for m in obj.modifiers:
 			if(m.type=='ARMATURE'):
 				armature = m.object
-				if not armature.visible_get():
-					# Armature is hidden, ignore (for now).
-					armature = None
-
 
 		if(enter_wp):
 			### Entering weight paint mode. ###
-			# Set modes.
-			if(armature):
-				context.view_layer.objects.active = armature
-				bpy.ops.object.mode_set(mode='POSE')
-			context.view_layer.objects.active = obj
-			bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
 
 			# Store old shading settings in a dict custom property
 			if('wpt' not in context.screen):
 				context.screen['wpt'] = {}
 			wpt = context.screen['wpt'].to_dict()
+			# Set modes.
+			if(armature):
+				context.screen['wpt']['armature_visible'] = armature.hide_viewport
+				armature.hide_viewport = False
+				context.view_layer.objects.active = armature
+
+				coll = bpy.data.collections.get(coll_name)
+				if not coll:
+					coll = bpy.data.collections.new(coll_name)
+				context.scene.collection.children.link(coll)
+				coll.objects.link(armature)
+				if not armature.visible_get():
+					# TODO: if armature is hidden with H key/eye icon, this doesn't work. And I don't know how to access that via python.
+					armature=None
+				else:
+					bpy.ops.object.mode_set(mode='POSE')
+			context.view_layer.objects.active = obj
+			bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
 			if('last_switch_in' not in wpt or wpt['last_switch_in']==False):	# Only save shading info if we exitted weight paint mode using this operator.
 				context.screen['wpt']['light'] = context.space_data.shading.light
 				context.screen['wpt']['color_type'] = context.space_data.shading.color_type
 				context.screen['wpt']['studio_light'] = context.space_data.shading.studio_light
 				context.screen['wpt']['active_object'] = obj
+
 			context.screen['wpt']['last_switch_in'] = True	# Store whether the last time the operator ran, were we switching into or out of weight paint mode.
 			context.screen['wpt']['mode'] = mode
 			
@@ -69,6 +82,12 @@ class ToggleWeightPaint(bpy.types.Operator):
 				context.space_data.shading.light = info['light']
 				context.space_data.shading.color_type = info['color_type']
 				context.space_data.shading.studio_light = info['studio_light']
+
+				# If the armature was un-hidden, hide it again.
+				if(armature):
+					armature.hide_viewport = info['armature_visible']
+					coll = bpy.data.collections.get(coll_name)
+					bpy.data.collections.remove(coll)
 			else:
 				# If we didn't enter weight paint mode with this operator, just go into object mode when trying to leave WP mode with this operator.
 				bpy.ops.object.mode_set(mode='OBJECT')
