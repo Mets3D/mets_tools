@@ -17,7 +17,7 @@ class ToggleWeightPaint(bpy.types.Operator):
 	bl_label = "Toggle Weight Paint Mode"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	local_view = bpy.props.BoolProperty(name="Local View", description="Enter Local view with the mesh and armature")
+	# local_view: bpy.props.BoolProperty(name="Local View", description="Enter Local view with the mesh and armature")
 
 	def execute(self, context):
 		obj = context.object
@@ -47,7 +47,8 @@ class ToggleWeightPaint(bpy.types.Operator):
 				coll = bpy.data.collections.get(coll_name)
 				if not coll:
 					coll = bpy.data.collections.new(coll_name)
-				context.scene.collection.children.link(coll)
+				if coll_name not in context.scene.collection.children:
+					context.scene.collection.children.link(coll)
 				coll.objects.link(armature)
 				if not armature.visible_get():
 					# TODO: if armature is hidden with H key/eye icon, this doesn't work. And I don't know how to access that via python.

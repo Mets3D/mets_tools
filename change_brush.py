@@ -37,13 +37,13 @@ class ChangeWPBrush(bpy.types.Operator):
 				brush.weight_tool = 'AVERAGE'
 		
 		# Configure brush.
-		value = 0.5 if brush.falloff_shape == 'SPHERE' else 1.0
-		if brush_name=='Add':
-			brush.cursor_color_add = [value, 0.0, 0.0, 1.0] 
-		if brush_name=='Subtract':
-			brush.cursor_color_add = [0.0, 0.0, value, 1.0]
-		if brush_name=='Blur':
-			brush.cursor_color_add = [value, value, value, 1.0]
+		# value = 0.5 if brush.falloff_shape == 'SPHERE' else 1.0
+		# if brush_name=='Add':
+		# 	brush.cursor_color_add = [value, 0.0, 0.0, 1.0] 
+		# if brush_name=='Subtract':
+		# 	brush.cursor_color_add = [0.0, 0.0, value, 1.0]
+		# if brush_name=='Blur':
+		# 	brush.cursor_color_add = [value, value, value, 1.0]
 
 		bpy.context.tool_settings.weight_paint.brush = brush
 
