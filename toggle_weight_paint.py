@@ -40,8 +40,10 @@ class ToggleWeightPaint(bpy.types.Operator):
 			wpt = context.screen['wpt'].to_dict()
 			# Set modes.
 			if(armature):
-				context.screen['wpt']['armature_visible'] = armature.hide_viewport
+				context.screen['wpt']['armature_enabled'] = armature.hide_viewport
+				context.screen['wpt']['armature_hide'] = armature.hide_get()
 				armature.hide_viewport = False
+				armature.hide_set(False)
 				context.view_layer.objects.active = armature
 
 				coll = bpy.data.collections.get(coll_name)
@@ -49,9 +51,12 @@ class ToggleWeightPaint(bpy.types.Operator):
 					coll = bpy.data.collections.new(coll_name)
 				if coll_name not in context.scene.collection.children:
 					context.scene.collection.children.link(coll)
-				coll.objects.link(armature)
+				
+				if armature.name not in coll.objects:
+					coll.objects.link(armature)
 				if not armature.visible_get():
-					# TODO: if armature is hidden with H key/eye icon, this doesn't work. And I don't know how to access that via python.
+					# If by some miracle the armature is still hidden, throw a warning and ignore it.
+					print("By some miracle, the armature is still hidden, cannot reveal it for weight paint mode.")
 					armature=None
 				else:
 					bpy.ops.object.mode_set(mode='POSE')
@@ -86,7 +91,8 @@ class ToggleWeightPaint(bpy.types.Operator):
 
 				# If the armature was un-hidden, hide it again.
 				if(armature):
-					armature.hide_viewport = info['armature_visible']
+					armature.hide_viewport = info['armature_enabled']
+					armature.hide_set(info['armature_hide'])
 					coll = bpy.data.collections.get(coll_name)
 					bpy.data.collections.remove(coll)
 			else:
