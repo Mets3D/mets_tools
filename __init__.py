@@ -53,6 +53,7 @@ from . import weld_normals
 from . import toggle_weight_paint
 from . import change_brush
 from . import weight_paint_context_menu
+from . import always_clean_weights
 
 def register():
 	from bpy.utils import register_class
@@ -78,6 +79,7 @@ def register():
 	toggle_weight_paint.register()
 	change_brush.register()
 	weight_paint_context_menu.register()
+	always_clean_weights.register()
 
 	#bpy.types.VIEW3D_MT_pose_specials.append(draw_func_MakePhysicsBones)
 
@@ -105,5 +107,6 @@ def unregister():
 	toggle_weight_paint.unregister()
 	change_brush.unregister()
 	weight_paint_context_menu.unregister()
+	always_clean_weights.unregister()
 	
 	#bpy.types.VIEW3D_MT_pose_specials.remove(draw_func_MakePhysicsBones)
