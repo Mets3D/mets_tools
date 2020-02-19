@@ -54,6 +54,7 @@ from . import toggle_weight_paint
 from . import change_brush
 from . import weight_paint_context_menu
 from . import always_clean_weights
+from . import regenerate_all_rigs
 
 def register():
 	from bpy.utils import register_class
@@ -80,8 +81,7 @@ def register():
 	change_brush.register()
 	weight_paint_context_menu.register()
 	always_clean_weights.register()
-
-	#bpy.types.VIEW3D_MT_pose_specials.append(draw_func_MakePhysicsBones)
+	regenerate_all_rigs.register()
 
 def unregister():
 	from bpy.utils import unregister_class
@@ -108,5 +108,4 @@ def unregister():
 	change_brush.unregister()
 	weight_paint_context_menu.unregister()
 	always_clean_weights.unregister()
-	
-	#bpy.types.VIEW3D_MT_pose_specials.remove(draw_func_MakePhysicsBones)
+	regenerate_all_rigs.unregister()
