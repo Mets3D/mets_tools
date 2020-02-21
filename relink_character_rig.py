@@ -1,6 +1,3 @@
-# The goal of this script is to reload proxied character rigs.
-# The proxy armature is expected to be the active object.
-
 import bpy
 
 def read_constraint(constraint):
@@ -56,106 +53,121 @@ def constraints_in_file_with_object(obj):
 						ret.append(c)
 	return ret
 
-# Prepare data
-armature = bpy.context.object
+class ReProxy_Rig(bpy.types.Operator):
+	""" Reload a library associated with a selected proxy rig, and re-create the proxied rig while preserving constraints in the scene that target it, as well as constraints that were added to the proxy rig. """
+	bl_idname = "object.reload_proxied_library"
+	bl_label = "Reload Proxied Library"
+	bl_options = {'REGISTER', 'UNDO'}
 
-assert armature.type=='ARMATURE', "Error: Select an armature."
+	def execute(self, context):
+		# Prepare data
 
-rig = bpy.context.object
-original = rig.proxy	# Oddly named attribute. ID.proxy actually references what object this object is a proxy of. Very confusing.
-original_name = original.name
+		rig = context.object
+		assert rig.type=='ARMATURE', "Error: Select an armature."
+		original = rig.proxy	# Oddly named attribute. ID.proxy actually references what object this object is a proxy of. Very confusing.
+		assert original, "Error: Selected armature is not a proxy!"
+		
+		library = original.library
+		blendfile = bpy.path.abspath(library.filepath)
 
-empty = rig.proxy_collection
-bpy.context.scene.cursor.location = empty.location[:]	# When we re-link, the new empty will be spawned at the cursor, so we want to make sure it lands in the same place.
-collection_name = empty.name
-assert original, "Error: Selected armature is not a proxy!"
-library = original.library
+		empty = rig.proxy_collection
+		context.scene.cursor.location = empty.location[:]	# When we re-link, the new empty will be spawned at the cursor, so we want to make sure it lands in the same place.
+		
+		collection_name = empty.name
+		original_name = original.name
 
-blendfile = bpy.path.abspath(library.filepath)
+		# Save Action
+		anim_data = rig.animation_data
+		action = None
+		if anim_data:
+			action = rig.animation_data.action
 
-# Save Action
-anim_data = armature.animation_data
-action = None
-if anim_data:
-	action = armature.animation_data.action
+		# Save constraints on the proxy rig that are local(ie. added by the animators)
+		# Dictionary of BoneName : [list of (type, {attribs}) tuples], where attribs is a dictionary of constraint attributes.
+		object_constraints = []
+		for c in rig.constraints:
+			object_constraints.append( (c.type, read_constraint(c)) )
 
-# Save constraints on the proxy rig that are local(ie. added by the animators)
-# Dictionary of BoneName : [list of (type, {attribs}) tuples], where attribs is a dictionary of constraint attributes.
-object_constraints = []
-for c in rig.constraints:
-	object_constraints.append( (c.type, read_constraint(c)) )
+		constraints = {"BoneName" : [('COPY_ROTATION', {'name' : "Copy Rotation"})]}
+		constraints = {}
 
-constraints = {"BoneName" : [('COPY_ROTATION', {'name' : "Copy Rotation"})]}
-constraints = {}
+		for b in rig.pose.bones:
+			for c in b.constraints:
+				if c.is_proxy_local:
+					if b.name not in constraints.keys():
+						constraints[b.name] = []
+					constraints[b.name].append( (c.type, read_constraint(c)) )
 
-for b in armature.pose.bones:
-	for c in b.constraints:
-		if c.is_proxy_local:
-			if b.name not in constraints.keys():
-				constraints[b.name] = []
-			constraints[b.name].append( (c.type, read_constraint(c)) )
+		bpy.ops.object.mode_set(mode='OBJECT')
 
-bpy.ops.object.mode_set(mode='OBJECT')
+		# Save constraints that target the proxy rig
+		constraints_targetting_proxy = constraints_in_file_with_object(rig)
 
-# Save constraints that target the proxy rig
-constraints_targetting_proxy = constraints_in_file_with_object(rig)
+		# Save collections
+		rig_collections = rig.users_collection[:]
+		empty_collections = empty.users_collection[:]
 
-# Save collections
-rig_collections = rig.users_collection[:]
-empty_collections = empty.users_collection[:]
+		# Delete objects
+		bpy.data.objects.remove(rig) # Delete the proxy armature.
+		bpy.data.objects.remove(empty)  # Delete the Empty object that references the collection
 
-# Delete objects
-bpy.data.objects.remove(rig) # Delete the proxy armature.
-bpy.data.objects.remove(empty)  # Delete the Empty object that references the collection
+		#####################################################################################################
 
-# Re-link the collection.
+		# Re-link the collection.
+		section = "\\Collection\\"
+		bpy.ops.wm.link(
+			filepath = blendfile + section + collection_name,
+			filename = collection_name,
+			directory = blendfile + section
+		)
+		empty = context.object
 
-# https://blender.stackexchange.com/questions/38060/how-to-link-append-with-a-python-script
-# blendfile = "/home/guest/Desktop/proxy_reload_test.blend"
-section = "\\Collection\\"
-obj_name = collection_name
+		# Re-proxy the rig.
+		bpy.ops.object.proxy_make(object=original_name)
+		rig = context.object
 
-bpy.ops.wm.link(
-	filepath = blendfile + section + obj_name,
-	filename = obj_name,
-	directory = blendfile + section
-)
-empty = bpy.context.object
+		# Apply the constraints in the rig.
+		for ob_con in object_constraints:
+			write_constraint(rig, ob_con)
 
-# Re-proxy the rig.
-bpy.ops.object.proxy_make(object=original_name)
-rig = bpy.context.object
+		for bone_name in constraints.keys():
+			pbone = rig.pose.bones.get(bone_name)
+			for constraint_data in constraints[bone_name]:
+				write_constraint(pbone, constraint_data)
 
-# Apply the constraints in the rig.
-for ob_con in object_constraints:
-	write_constraint(rig, ob_con)
+		# Fix constraints in the scene that should target the rig.
+		for c in constraints_targetting_proxy:
+			if c.type=='ARMATURE':
+				for t in c.targets:
+					t.target = rig
+			else:
+				c.target = rig
 
-for bone_name in constraints.keys():
-	pbone = rig.pose.bones.get(bone_name)
-	for constraint_data in constraints[bone_name]:
-		write_constraint(pbone, constraint_data)
+		# Apply the action.
+		rig.driver_add("hide_render") # Just to initialize animation_data.
+		rig.animation_data.action = action
+		rig.driver_remove("hide_render")
 
-# Fix constraints in the scene that should target the rig.
-for c in constraints_targetting_proxy:
-	if c.type=='ARMATURE':
-		for t in c.targets:
-			t.target = rig
-	else:
-		c.target = rig
+		# Unlink objects from their current collections
+		for coll in rig.users_collection:
+			coll.objects.unlink(rig)
+			coll.objects.unlink(empty)
 
-# Apply the action.
-rig.driver_add("hide_render") # Just to initialize animation_data.
-rig.animation_data.action = action
-rig.driver_remove("hide_render")
+		# Link to original collections
+		for coll in rig_collections:
+			coll.objects.link(rig)
+		for coll in empty_collections:
+			coll.objects.link(empty)
+		empty_collections = empty.users_collection[:]
 
-# Unlink objects from their current collections
-for coll in rig.users_collection:
-	coll.objects.unlink(rig)
-	coll.objects.unlink(empty)
+		return { 'FINISHED' }
 
-# Link to original collections
-for coll in rig_collections:
-	coll.objects.link(rig)
-for coll in empty_collections:
-	coll.objects.link(empty)
-empty_collections = empty.users_collection[:]
+def register():
+	from bpy.utils import register_class
+	register_class(ReProxy_Rig)
+
+def unregister():
+	from bpy.utils import unregister_class
+	unregister_class(ReProxy_Rig)
+
+register()

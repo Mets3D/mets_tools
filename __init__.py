@@ -55,6 +55,7 @@ from . import change_brush
 from . import weight_paint_context_menu
 from . import always_clean_weights
 from . import regenerate_all_rigs
+from . import relink_character_rig
 
 def register():
 	from bpy.utils import register_class
@@ -82,6 +83,7 @@ def register():
 	weight_paint_context_menu.register()
 	always_clean_weights.register()
 	regenerate_all_rigs.register()
+	relink_character_rig.register()
 
 def unregister():
 	from bpy.utils import unregister_class
@@ -109,3 +111,4 @@ def unregister():
 	weight_paint_context_menu.unregister()
 	always_clean_weights.unregister()
 	regenerate_all_rigs.unregister()
+	relink_character_rig.unregister()
