@@ -1,7 +1,8 @@
 import bpy
 from bpy.props import *
 
-# This is meant as a replacement for the built-in Ctrl+G bone group menu in pose mode.
+# This operator is a replacement for the (useless) built-in Ctrl+G bone group menu in pose mode.
+# It lets you assign the selected bones to an existing bone group, or create a new one, or unassign from all.
 
 # These are the bone group color presets from Blender default (dark) theme.
 # PresetName : [(vec3 normal), (vec3 select), (vec3 active)]

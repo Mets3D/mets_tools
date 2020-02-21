@@ -2,10 +2,10 @@ import bpy
 from bpy.props import *
 
 class ConvertImages(bpy.types.Operator):
-	""" Convert images with one or any extension to whatever you have set in your render output settings. Uses Image.save_as_render(). """
+	"""Convert images with one or any extension to whatever you have set in your render output settings. Uses Image.save_as_render()."""
 	bl_idname = "image.convert_images"
 	bl_label = "Convert Images"
-	bl_options = {'REGISTER', 'UNDO'}
+	bl_options = {'REGISTER'}
 
 	from_ext: StringProperty(
 		name="From Extension",
@@ -20,12 +20,9 @@ class ConvertImages(bpy.types.Operator):
 		options={'SKIP_SAVE'}
 	)
 
-	start: BoolProperty(
-		name="Go",
-		default=False,
-		description="Tick to begin converting. DO NOT TOUCH THIS PANEL ONCE YOU'RE DONE!",
-		options={'SKIP_SAVE'}
-	)
+	def invoke(self, context, event):
+		wm = context.window_manager
+		return wm.invoke_props_dialog(self)
 
 	def execute(self, context):
 		# Saving view settings
@@ -36,7 +33,8 @@ class ConvertImages(bpy.types.Operator):
 		org_look = view_settings.look
 		org_curve = view_settings.use_curve_mapping
 		
-		# Resetting view settings to default values
+		# Resetting view settings to default values.
+		# This is neccessary because Image.save_as_render() uses view settings to apply color correction to the image, which we do not want.
 		view_settings.view_transform = 'Standard'
 		view_settings.exposure = 0
 		view_settings.gamma = 1
@@ -68,9 +66,6 @@ class ConvertImages(bpy.types.Operator):
 			assert len(img.packed_files) == 0, "Image has packed files:\n" + img.filepath +"\nPlease unpack all files (ideally pack everything first, then unpack all to current directory)"
 			if(self.rename_files):
 				assert "." not in img.name, "It looks like you want to rename files to the image datablock's name, but your image datablock contains an extension:\n" + img.name + "\nMake sure your image names don't contain a period."
-
-		if(not self.start):
-			return {'FINISHED'}
 
 		for img in bpy.data.images:
 			if(not img.filepath.endswith(self.from_ext)): continue

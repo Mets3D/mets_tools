@@ -4,6 +4,10 @@ import mathutils
 import math
 import bmesh
 
+# TODO: This should be turned into a rig element in CloudRigify(although having it as an operator is still neat)
+# TODO: The pin vertex weight should taper off from the beginning to the end of the chain, instead of simply being 1 on the first vertex and 0 everywhere else.
+# 		Then the curvature of that falloff could even be adjusted with a parameter (so 1 would be linear falloff, 2 quadratic, etc) 
+
 def make_physics_bone_chain(armature, bones, pMesh=None):
 	""" Apply physics to a single chain of bones. Armature needs to have clean transforms and be in rest pose.
 		bones: list of bones in the chain, in correct hierarchical order"""

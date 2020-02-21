@@ -3,9 +3,7 @@ from math import *
 from . import utils
 from bpy.props import *
 
-# When mirroring from right to left side, it seems like it doesn't flip names correctly, and also doesn't delete existing constraints.
-# Child Of constraints' inverse matrices still don't always seem right.
-# Split constraint mirror into a util function.
+# TODO: When mirroring from right to left side, it seems like it doesn't flip names correctly, and also doesn't delete existing constraints.
 
 def mirror_drivers(armature, from_bone, to_bone, from_constraint=None, to_constraint=None):
 	# Mirrors all drivers from one bone to another. from_bone and to_bone should be pose bones.

@@ -6,20 +6,13 @@ import bpy
 # For example, we can sculpt a single shape key on the hand for how the hand should look like when all fingers are bent 90 degrees.
 # Then we can split this shape key up into 4 parts, one for each finger, by:
 # 	Duplicating the original shape key 4 times
-#	Assigning masks to these duplicates, such that the sum of the mask's weights on any affected vertex is exactly 1.
-# 		Which means they need to be normalized. 
-# 		Unfortunately keeping a set of normalized vgroups is difficult when you don't have bones to assign those groups to, since features like Auto-Normalize rely on bones.
-# 		And we can't just use the weights of the finger bones because they don't necessarily cover every vertex we need.
-#			Although maybe this should be an option.
-
-# We are relying on drivers not getting deleted when shape keys get deleted, so let's hope that's not a bug and never gets changed.
+#	Assigning mask vertex groups to these duplicates
+#		Ensuring those mask vertex groups are normalized, such that their weights add up to 1 on any given vertex.
 
 def normalize_vgroups(o, vgroups):
-	""" Normalize a set of vertex groups in isolation """
-	""" Used for creating mask vertex groups for splitting shape keys """
+	"""Normalize a set of vertex groups, such that their weights add up to 1 on any given vertex that are assigned to any of the groups."""
 	for v in o.data.vertices:
 		# Find sum of weights in specified vgroups
-		# set weight to original/sum
 		sum_weights = 0
 		for vg in vgroups:
 			w = 0
@@ -29,6 +22,7 @@ def normalize_vgroups(o, vgroups):
 				pass
 		for vg in vgroups:
 			try:
+				# set weight to original/sum
 				vg.add([v.index], vg.weight(v.index)/sum_weights, 'REPLACE')
 			except:
 				pass
@@ -101,6 +95,7 @@ def split_shapekey(o, source_name, split_names):
 	# Restore active shape key
 	o.active_shape_key_index = shape_keys.find(active_sk_name)
 
+# To use, uncomment and customize the stuff below:
 """
 o = bpy.context.object
 
@@ -113,6 +108,7 @@ finger_mask_names = [
 ]
 finger_mask_vgs = [vg for vg in o.vertex_groups if vg.name in finger_mask_names]
 normalize_vgroups(o, finger_mask_vgs)
+
 finger_bends1 = {
 	"Finger_Index1.L" : "SK:Finger_Index.L",
 	"Finger_Middle1.L" : "SK:Finger_Middle.L",
@@ -134,4 +130,5 @@ finger_bends3 = {
 
 split_shapekey(o, "FingerBends1", finger_bends1)
 split_shapekey(o, "FingerBends2", finger_bends2)
-split_shapekey(o, "FingerBends3", finger_bends3)"""
+split_shapekey(o, "FingerBends3", finger_bends3)
+"""

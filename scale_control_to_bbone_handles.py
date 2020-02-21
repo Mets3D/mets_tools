@@ -75,7 +75,7 @@ def setup_bbone_scale_controls(pb):
 		my_d.make_real(pb, "bbone_easeout")
 
 class Setup_BBone_Scale_Controls(bpy.types.Operator):
-	""" Set up drivers and settings to let bendy bones scale be controlled by their bbone handles. """
+	""" Set up drivers and settings to let bendy bones' scale be controlled by their bbone handles. """
 	bl_idname = "armature.bbone_scale_controls"
 	bl_label = "Scale Drivers for BBone Handles"
 	bl_options = {'REGISTER', 'UNDO'}

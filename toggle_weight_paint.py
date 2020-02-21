@@ -1,13 +1,18 @@
 import bpy
 
 # This operator is to make entering weight paint mode less of a pain in the ass.
+# You just need to select a mesh, run the operator, and you should be ready to weight paint.
 
 # It registers an operator called "Toggle Weight Paint Mode" that does the following:
-# 	Set active object to weight paint mode
-# 	Set shading mode to a white MatCap, Single Color shading
-# 	Find first armature via modifiers and set it to pose mode.
-# When running the operator again, it should restore all modes and shading settings.
+#	Set active object to weight paint mode
+#	Set shading mode to a white MatCap, Single Color shading
+#	Find first armature via the object's modifiers.
+#	Ensure it is visible by moving it to a temporary collection and changing its visibility settings.
+#	Enable "In Front" option
+#	Set it to pose mode.
+# When running the operator again, it should restore all modes and shading settings, delete the temporary collection, and restore the armature's visibility settings.
 # You need to set up your own keybind for this operator.
+# NOTE: If you exit weight paint mode with this operator while in wireframe mode, the studio light shading setting won't be restored.
 
 coll_name = "temp_weight_paint_armature"
 
@@ -42,8 +47,10 @@ class ToggleWeightPaint(bpy.types.Operator):
 			if(armature):
 				context.screen['wpt']['armature_enabled'] = armature.hide_viewport
 				context.screen['wpt']['armature_hide'] = armature.hide_get()
+				context.screen['wpt']['armature_in_front'] = armature.show_in_front
 				armature.hide_viewport = False
 				armature.hide_set(False)
+				armature.show_in_front = True
 				context.view_layer.objects.active = armature
 
 				coll = bpy.data.collections.get(coll_name)
@@ -55,7 +62,6 @@ class ToggleWeightPaint(bpy.types.Operator):
 				if armature.name not in coll.objects:
 					coll.objects.link(armature)
 				if not armature.visible_get():
-					# If by some miracle the armature is still hidden, throw a warning and ignore it.
 					print("By some miracle, the armature is still hidden, cannot reveal it for weight paint mode.")
 					armature=None
 				else:
@@ -97,6 +103,7 @@ class ToggleWeightPaint(bpy.types.Operator):
 				if(armature):
 					armature.hide_viewport = info['armature_enabled']
 					armature.hide_set(info['armature_hide'])
+					armature.show_in_front = info['armature_in_front']
 					coll = bpy.data.collections.get(coll_name)
 					bpy.data.collections.remove(coll)
 			else:

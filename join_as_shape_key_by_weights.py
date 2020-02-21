@@ -2,7 +2,10 @@ import bpy
 import bmesh
 from mathutils import Vector
 
+# This is meant to identify identical vertices in two objects based on their vertex weights, and then copy shape keys from one to the other based on that mapping.
 # TODO: I never actually made use of this code, but I think it works? Or at least worked in 2.7.
+# Obviously, this relies on the assumption that the vertex weights are unique and matching between the two objects.
+# This is meant as a plan D for when vertex indicies don't match, topology doesn't match, and UV coordinates don't match.
 
 def build_weight_dict(obj, vgroups=None, mask_vgroup=None, bone_combine_dict=None):
 	# Returns a dictionary that matches the vertex indicies of the object to a list of tuples containing the vertex group names that the vertex belongs to and the weight of the vertex in that group.

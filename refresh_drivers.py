@@ -1,20 +1,20 @@
 import bpy
 
-# Well, this is silly, but here it is.
+# This exists because sometimes Blender decides that a perfectly valid driver is not valid.
+
+def refresh_drivers(thing):
+	if not thing.animation_data: return
+	for d in thing.animation_data.drivers:
+		if d.driver.type != 'SCRIPTED': continue
+		d.driver.expression = d.driver.expression
 
 class RefreshDrivers(bpy.types.Operator):
 	"""Refresh drivers, ensuring no valid drivers are marked as invalid"""
 	bl_idname = "object.refresh_drivers"
 	bl_label = "Refresh Drivers on selected objects"
 	bl_options = {'REGISTER', 'UNDO'}
-
+	
 	def execute(self, context):
-		def refresh_drivers(thing):
-			if not thing.animation_data: return
-			for d in thing.animation_data.drivers:
-				if d.driver.type != 'SCRIPTED': continue
-				d.driver.expression = d.driver.expression
-
 		for o in context.selected_objects:
 			refresh_drivers(o)
 			refresh_drivers(o.data)
@@ -22,7 +22,6 @@ class RefreshDrivers(bpy.types.Operator):
 				refresh_drivers(o.data.shape_keys)
 
 		return { 'FINISHED' }
-
 
 def register():
 	from bpy.utils import register_class

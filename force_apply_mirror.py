@@ -26,9 +26,8 @@ def flip_driver_targets(obj):
 						print("target: " + t.bone_target)
 						t.bone_target = utils.flip_name(t.bone_target)
 
-
 class ForceApplyMirror(bpy.types.Operator):
-	""" Force apply mirror modifier by duplicating the object and flipping it on the X axis. """
+	""" Force apply mirror modifier by duplicating the object, flipping it on the X axis, merging into the original """
 	bl_idname = "object.force_apply_mirror_modifier"
 	bl_label = "Force Apply Mirror Modifier"
 	bl_options = {'REGISTER', 'UNDO'}

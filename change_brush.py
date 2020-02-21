@@ -2,9 +2,8 @@ import bpy
 from bpy.props import *
 from bpy.app.handlers import persistent
 
-
 class ChangeWPBrush(bpy.types.Operator):
-	""" Just change the weight paint brush to an actual specific brush rather than a vague tool """
+	"""Change the weight paint brush to a specific brush."""
 	bl_idname = "brush.set_specific"
 	bl_label = "Set WP Brush"
 	bl_options = {'REGISTER', 'UNDO'}
@@ -23,21 +22,18 @@ class ChangeWPBrush(bpy.types.Operator):
 		brush = bpy.data.brushes.get(brush_name)
 		if not brush:
 			# Create the brush.
+			brush = bpy.data.brushes.new(brush_name, mode='WEIGHT_PAINT')
 			if brush_name == 'Add':
-				brush = bpy.data.brushes.new('Add', mode='WEIGHT_PAINT')
 				brush.blend = 'ADD'
 			if brush_name == 'Subtract':
-				brush = bpy.data.brushes.new('Subtract', mode='WEIGHT_PAINT')
 				brush.blend = 'SUB'
 			if brush_name == 'Blur':
-				brush = bpy.data.brushes.new('Blur', mode='WEIGHT_PAINT')
 				brush.weight_tool = 'BLUR'
 			if brush_name == 'Average':
-				brush = bpy.data.brushes.new('Blur', mode='WEIGHT_PAINT')
 				brush.weight_tool = 'AVERAGE'
 		
 		# Configure brush.
-		value = 0.5 if brush.falloff_shape == 'SPHERE' else 1.0
+		value = 0.5 if brush.falloff_shape == 'SPHERE' else 1.0	# We use a darker color to indicate when falloff shape is set to Sphere.
 		if brush_name=='Add':
 			brush.cursor_color_add = [value, 0.0, 0.0, 1.0] 
 		if brush_name=='Subtract':
@@ -45,12 +41,15 @@ class ChangeWPBrush(bpy.types.Operator):
 		if brush_name=='Blur':
 			brush.cursor_color_add = [value, value, value, 1.0]
 
+		# Set the brush as the active one.
 		bpy.context.tool_settings.weight_paint.brush = brush
 
 		return { 'FINISHED' }
 
 @persistent
 def register_brush_switch_hotkeys(dummy):
+	# Without this, the hotkeys' properties get reset whenever the addon is disabled, which results in having to set the Add, Subtract, Blur brushes on the hotkeys manually every time.
+	# However, with this, the hotkey cannot be changed, since this will forcibly re-create the original anyways.
 	wp_hotkeys = bpy.data.window_managers[0].keyconfigs.active.keymaps['Weight Paint'].keymap_items
 	
 	add_hotkey = wp_hotkeys.new('brush.set_specific',value='PRESS',type='ONE',ctrl=False,alt=False,shift=False,oskey=False)

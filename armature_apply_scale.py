@@ -3,9 +3,9 @@ from bpy.props import *
 
 # In order to apply (UNIFORM) scale on an armature without breaking the rigging, we need to apply the scale factor to all location values used by the rig.
 # This includes:
-# - Every property of every constraint that references a location/distance/length value.
-# - Every location curve used by Action constraints.
-# - Every driver expression that references a variable that is a location.
+# - Every property of every constraint that is a location/distance/length value.
+# - Every location curve used by Actions used by the armature's Action constraints.
+# - Every driver expression that references a variable that is a location. NOTE: Not implemented.
 
 class ApplyArmatureScale(bpy.types.Operator):
 	""" Apply uniform scaling to an armature while adjusting constraints and used Actions so the armature behaves identically on the new scale.

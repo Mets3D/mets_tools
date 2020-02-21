@@ -2,7 +2,7 @@ import bpy
 from bpy.props import *
 
 class MakeModifiersConsistent(bpy.types.Operator):
-	""" Set certain settings on modifiers of selected objects, or copy them from an active object. """
+	"""Set certain settings on modifiers of selected objects to my arbitrary preferred defaults, or copy those settings from the active object."""
 	bl_idname = "object.make_modifiers_consistent"
 	bl_label = "Make Modifiers Consistent"
 	bl_options = {'REGISTER', 'UNDO'}

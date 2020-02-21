@@ -440,14 +440,15 @@ class CleanUpMaterials(bpy.types.Operator):
 				# Cleaning nodetree
 				if(m.use_nodes):
 					clean_node_tree(m.node_tree, 
-					delete_unused_nodes=self.opt_delete_unused_nodes, 
-					fix_groups=self.opt_fix_groups, 
-					center_nodes=True, 
-					fix_tex_refs=self.opt_fix_tex_refs, 
-					rename_tex_nodes=self.opt_rename_nodes, 
-					hide_sockets=self.opt_hide_sockets, 
-					min_sockets=2, 
-					tex_width=self.opt_set_tex_widths)
+						delete_unused_nodes	= self.opt_delete_unused_nodes, 
+						fix_groups			= self.opt_fix_groups, 
+						center_nodes		= True, 
+						fix_tex_refs		= self.opt_fix_tex_refs, 
+						rename_tex_nodes	= self.opt_rename_nodes, 
+						hide_sockets		= self.opt_hide_sockets, 
+						min_sockets			= 2, 
+						tex_width			= self.opt_set_tex_widths
+					)
 				mats_done.append(m)
 		return {'FINISHED'}
 
@@ -561,12 +562,14 @@ class CleanUpObjects(bpy.types.Operator):
 			bpy.ops.object.delete_unused_material_slots(opt_objects=self.opt_objects)
 
 		# Cleaning node trees
-		bpy.ops.material.clean_up(opt_objects=self.opt_objects, 
-			opt_fix_name=self.opt_rename_materials, 
-			opt_delete_unused_nodes=self.opt_clean_materials, 
-			opt_fix_groups=self.opt_clean_materials, 
-			opt_fix_tex_refs=self.opt_clean_materials, 
-			opt_rename_nodes=self.opt_clean_materials)
+		bpy.ops.material.clean_up(
+			opt_objects				= self.opt_objects, 
+			opt_fix_name			= self.opt_rename_materials, 
+			opt_delete_unused_nodes	= self.opt_clean_materials, 
+			opt_fix_groups			= self.opt_clean_materials, 
+			opt_fix_tex_refs		= self.opt_clean_materials, 
+			opt_rename_nodes		= self.opt_clean_materials
+		)
 
 		if(self.opt_clean_vgroups):
 			bpy.ops.object.delete_unused_vgroups(opt_objects=self.opt_objects)
@@ -649,11 +652,13 @@ class CleanUpScene(bpy.types.Operator):
 				clean_node_tree(nt)
 		
 		objects = 'Selected' if self.opt_selected_only else 'All'
-		bpy.ops.object.clean_up(opt_objects=objects, 
-			opt_clean_vgroups=self.opt_clean_vgroups, 
-			opt_clean_material_slots=self.opt_clean_material_slots, 
-			opt_rename_materials=self.opt_rename_materials, 
-			opt_clean_materials=self.opt_clean_materials)
+		bpy.ops.object.clean_up(
+			opt_objects				 = objects, 
+			opt_clean_vgroups		 = self.opt_clean_vgroups, 
+			opt_clean_material_slots = self.opt_clean_material_slots, 
+			opt_rename_materials	 = self.opt_rename_materials, 
+			opt_clean_materials		 = self.opt_clean_materials
+		)
 		
 		bpy.context.view_layer.objects.active = org_active
 		return {'FINISHED'}

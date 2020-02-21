@@ -8,6 +8,9 @@ bl_info = {
 	"category": "Object"
 }
 
+# This is probably fairly useless and will give roughly the same results as transferring weights with
+# the Transfer Mesh Data operator set to Nearest Face Interpolated, and then running a Smooth Vertex Weights operator.
+
 import bpy
 import mathutils
 from mathutils import Vector

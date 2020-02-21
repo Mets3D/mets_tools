@@ -2,7 +2,9 @@ import bpy
 from bpy.app.handlers import persistent
 
 class ToggleCleaner(bpy.types.Operator):
-	""" Toggle automatic calling of weight clean operator """
+	"""Toggle automatic calling of Clean Vertex Groups operator after every depsgraph update while in Weight Paint mode.
+	(Ie. after every brush stroke)
+	"""
 	bl_idname = "object.toggle_weight_cleaner"
 	bl_label = "Toggle Weight Cleaner"
 	bl_options = {'REGISTER', 'UNDO'}
@@ -12,13 +14,12 @@ class ToggleCleaner(bpy.types.Operator):
 		return {'FINISHED'}
 
 class WeightCleaner:
-	""" Run bpy.ops.object.vertex_group_clean on every depsgraph update while in weight paint mode (ie. every brush stroke).
-	Most of the code is simply responsible for avoiding infinite looping depsgraph updates 
-	"""
-	cleaner_active = False	# We start disabled. Run the operator to start cleaning weights, run it again to stop.
+	"""Run bpy.ops.object.vertex_group_clean on every depsgraph update while in weight paint mode (ie. every brush stroke)."""
+	# Most of the code is simply responsible for avoiding infinite looping depsgraph updates.
+	cleaner_active = False	# Flag set by the user via the toggle operator.
 
-	do_clean = True
-	cleaning_in_progress = False # Avoid threading issues.
+	do_clean = True	# Flag set in post_depsgraph_update, to indicate to pre_depsgraph_update that the depsgraph update has indeed completed.
+	cleaning_in_progress = False # Flag set by pre_depsgraph_update to indicate to post_depsgraph_update that the cleanup operator is still running (in a different thread).
 	
 	@classmethod
 	def clean_weights(cls, scene, depsgraph):

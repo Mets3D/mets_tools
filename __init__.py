@@ -44,7 +44,6 @@ from . import rename_skeleton_to_metsrig
 from . import mirror_constraints
 from . import make_right_vgroups
 from . import setup_action_constraints
-from . import mirror_rig
 from . import armature_apply_scale
 from . import scale_control_to_bbone_handles
 from . import assign_bone_group
@@ -72,7 +71,6 @@ def register():
 	mirror_constraints.register()
 	make_right_vgroups.register()
 	setup_action_constraints.register()
-	mirror_rig.register()
 	armature_apply_scale.register()
 	scale_control_to_bbone_handles.register()
 	assign_bone_group.register()
@@ -100,7 +98,6 @@ def unregister():
 	mirror_constraints.unregister()
 	make_right_vgroups.unregister()
 	setup_action_constraints.unregister()
-	mirror_rig.unregister()
 	armature_apply_scale.unregister()
 	scale_control_to_bbone_handles.unregister()
 	assign_bone_group.unregister()
