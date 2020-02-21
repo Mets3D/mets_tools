@@ -12,7 +12,10 @@ class ToggleCleaner(bpy.types.Operator):
 		return {'FINISHED'}
 
 class WeightCleaner:
-	cleaner_active = True
+	""" Run bpy.ops.object.vertex_group_clean on every depsgraph update while in weight paint mode (ie. every brush stroke).
+	Most of the code is simply responsible for avoiding infinite looping depsgraph updates 
+	"""
+	cleaner_active = False	# We start disabled. Run the operator to start cleaning weights, run it again to stop.
 
 	do_clean = True
 	cleaning_in_progress = False # Avoid threading issues.

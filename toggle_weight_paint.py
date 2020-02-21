@@ -87,7 +87,11 @@ class ToggleWeightPaint(bpy.types.Operator):
 				# Restore shading options.
 				context.space_data.shading.light = info['light']
 				context.space_data.shading.color_type = info['color_type']
-				context.space_data.shading.studio_light = info['studio_light']
+				try:
+					context.space_data.shading.studio_light = info['studio_light']
+				except:
+					# TODO: above line fails when exiting wp mode while in wireframe view.
+					pass
 
 				# If the armature was un-hidden, hide it again.
 				if(armature):
