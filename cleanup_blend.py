@@ -289,14 +289,14 @@ class CleanUpAction(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	opt_all: BoolProperty(name="All Actions", default=False)
-	opt_method: EnumProperty(name="Cleanup Method",
-		items=(
-			("INDIVIDUAL", "Individual", "If an individual curve doesn't do anything, remove it."),
-			("TRANSFORM", "Per Transform Group", "If an entire group of curves don't do anything, remove them. Eg, only remove rotation curves if none of the rotation curves do anything."),
-			("BONE", "Per Bone", "Only remove curves if all curves belonging to that bone don't do anything.")
-		),
-		default="TRANSFORM")
-	opt_delete_default: BoolProperty(name="Delete Base Keyframes", description="If a curve only has one keyframe, and that keyframe is the default pose, delete it.", default=True)
+	# opt_method: EnumProperty(name="Cleanup Method",
+	# 	items=(
+	# 		("INDIVIDUAL", "Individual", "If an individual curve doesn't do anything, remove it."),
+	# 		("TRANSFORM", "Per Transform Group", "If an entire group of curves don't do anything, remove them. Eg, only remove rotation curves if none of the rotation curves do anything."),
+	# 		("BONE", "Per Bone", "Only remove curves if all curves belonging to that bone don't do anything.")
+	# 	),
+	# 	default="TRANSFORM")
+	# opt_delete_default: BoolProperty(name="Delete Base Keyframes", description="If a curve only has one keyframe, and that keyframe is the default pose, delete it.", default=True)
 
 	def execute(self, context):
 		actions = bpy.data.actions if self.opt_all else [context.object.animation_data.action]
@@ -345,6 +345,8 @@ class CleanUpAction(bpy.types.Operator):
 					# TODO:
 					# based on opt_method, check if other required curves are marked for delete.
 					# If they all are, delete them all (and only then).
+		
+		return {'FINISHED'}
 
 class CleanUpArmature(bpy.types.Operator):
 	# TODO: turn into a valid operator

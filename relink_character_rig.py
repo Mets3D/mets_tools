@@ -66,9 +66,6 @@ def reload_proxied_rig(context, rig, blendfile=None):
 	if not blendfile:
 		blendfile = bpy.path.abspath(library.filepath)
 	
-	# Quick hack for coffeerun - TODO delete this
-	blendfile = blendfile.replace(".blend", "_temp.blend")
-
 	empty = rig.proxy_collection
 	context.scene.cursor.location = empty.location[:]	# When we re-link, the new empty will be spawned at the cursor, so we want to make sure it lands in the same place.
 	

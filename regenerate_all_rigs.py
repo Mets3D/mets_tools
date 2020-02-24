@@ -35,6 +35,15 @@ def safe_generate(context, metarig, target_rig, coll):
 	target_rig.hide_viewport = target_rig_disabled
 	target_rig.hide_set(target_rig_hide)
 
+def rigify_cleanup(context, rig):
+	""" Rigify does some nasty things so late in the generation process that it cannot be handled from a custom featureset's code, so I'll put it here. """
+	# Delete driver on pass_index
+	rig.driver_remove("pass_index")
+	# Delete rig_ui.py from blend file
+	text = bpy.data.texts.get("rig_ui.py")
+	if text:
+		bpy.data.texts.remove(text)
+
 class Regenerate_All_Rigs(bpy.types.Operator):
 	""" Regenerate all Rigify rigs in the file. (Only works on metarigs that have an existing target rig.) """
 	bl_idname = "object.regenerate_all_rigify_rigs"
@@ -56,6 +65,7 @@ class Regenerate_All_Rigs(bpy.types.Operator):
 				metarig = o
 				target_rig = o.data.rigify_target_rig
 				safe_generate(context, metarig, target_rig, coll)
+				rigify_cleanup(context, target_rig)
 
 		bpy.data.collections.remove(coll)
 
