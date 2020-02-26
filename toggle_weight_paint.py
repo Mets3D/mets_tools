@@ -23,6 +23,10 @@ class ToggleWeightPaint(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	# local_view: bpy.props.BoolProperty(name="Local View", description="Enter Local view with the mesh and armature")
+	
+	@classmethod
+	def poll(cls, context):
+		return context.object and context.object.type=='MESH'
 
 	def execute(self, context):
 		obj = context.object
