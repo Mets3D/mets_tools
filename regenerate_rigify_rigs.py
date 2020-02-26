@@ -44,15 +44,15 @@ def rigify_cleanup(context, rig):
 	if text:
 		bpy.data.texts.remove(text)
 
-class Regenerate_All_Rigs(bpy.types.Operator):
+class Regenerate_Rigify_Rigs(bpy.types.Operator):
 	""" Regenerate all Rigify rigs in the file. (Only works on metarigs that have an existing target rig.) """
 	bl_idname = "object.regenerate_all_rigify_rigs"
 	bl_label = "Regenerate All Rigify Rigs"
 	bl_options = {'REGISTER', 'UNDO'}
 
 	def execute(self, context):
+		# Create temporary collection to work in
 		coll_name = "temp_rigify_generate"
-
 		coll = bpy.data.collections.get(coll_name)
 		if not coll:
 			coll = bpy.data.collections.new(coll_name)
@@ -73,8 +73,8 @@ class Regenerate_All_Rigs(bpy.types.Operator):
 
 def register():
 	from bpy.utils import register_class
-	register_class(Regenerate_All_Rigs)
+	register_class(Regenerate_Rigify_Rigs)
 
 def unregister():
 	from bpy.utils import unregister_class
-	unregister_class(Regenerate_All_Rigs)
+	unregister_class(Regenerate_Rigify_Rigs)

@@ -53,7 +53,7 @@ from . import toggle_weight_paint
 from . import change_brush
 from . import weight_paint_context_menu
 from . import always_clean_weights
-from . import regenerate_all_rigs
+from . import regenerate_rigify_rigs
 from . import relink_character_rig
 
 def register():
@@ -80,7 +80,7 @@ def register():
 	change_brush.register()
 	weight_paint_context_menu.register()
 	always_clean_weights.register()
-	regenerate_all_rigs.register()
+	regenerate_rigify_rigs.register()
 	relink_character_rig.register()
 
 def unregister():
@@ -107,5 +107,5 @@ def unregister():
 	change_brush.unregister()
 	weight_paint_context_menu.unregister()
 	always_clean_weights.unregister()
-	regenerate_all_rigs.unregister()
+	regenerate_rigify_rigs.unregister()
 	relink_character_rig.unregister()

@@ -33,8 +33,7 @@ def write_constraint(obj, constraint_data):
 	return con
 
 def constraints_in_file_with_object(obj):
-	# Verbose as fuck.
-	# Go through every object and bone in the file(except self!!!), and return a list of constraints that target the given object.
+	"""Go through every object and bone in the file(except self!!!), and return a list of constraints that target the given object."""
 	ret = []
 	for o in bpy.data.objects:
 		if o == obj: continue
@@ -46,7 +45,7 @@ def constraints_in_file_with_object(obj):
 				for c in b.constraints:
 					if c.type=='ARMATURE':
 						for t in c.targets:
-							if t.target == obj:
+							if t.target == obj:	# NOTE: This only supports Armature constraints where every target object is the same.
 								ret.append(c)
 								break
 					elif hasattr(c, 'target') and c.target == obj:
