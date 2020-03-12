@@ -69,6 +69,8 @@ class Regenerate_Rigify_Rigs(bpy.types.Operator):
 
 		bpy.data.collections.remove(coll)
 
+		bpy.ops.object.refresh_drivers(selected_only=False)
+
 		return { 'FINISHED' }
 
 def register():
