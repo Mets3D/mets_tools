@@ -1,5 +1,5 @@
 import bpy
-from mets_tools import utils
+from .. import utils
 
 class ID:
 	def __init__(self):
@@ -11,3 +11,4 @@ class ID:
 
 	def make_real(self, target, skip=[], recursive=False):
 		utils.copy_attributes(self, target, skip, recursive)
+		return target

@@ -1,6 +1,6 @@
 import bpy
 from .id import *
-from mets_tools import utils
+from .. import utils
 import copy
 
 # Data Container and utilities for de-coupling driver management from BPY.

@@ -1,5 +1,5 @@
 import bpy
-from .armature_nodes.driver import *
+from .definitions.driver import *
 
 def setup_bbone_scale_controls(pb):
 	armature = pb.id_data

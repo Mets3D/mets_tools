@@ -113,7 +113,7 @@ class SetupActionConstraints(bpy.types.Operator):
 			for c in constraints:
 				
 				# TODO: Utils should have a way to detect and set a string to a specific side, rather than only flip. That way we wouldn't have to hard-code and only support .L/.R suffix.
-				# TODO: We should abstract constraints just like we did drivers in .armature_nodes, and then let those abstract constraints mirror themselves. Then we can use that mirroring functionality from both here and X Mirror Constraints operator.
+				# TODO: We should abstract constraints just like we did drivers in .definitions, and then let those abstract constraints mirror themselves. Then we can use that mirroring functionality from both here and X Mirror Constraints operator.
 
 				# If bone name indicates a side, force subtarget to that side, if subtarget is flippable.
 				if( b.name.endswith(".L") and self.subtarget.endswith(".R") ):
