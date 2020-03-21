@@ -5,11 +5,11 @@ You can install this like any other Blender Addon - Download as zip, then in Ble
 # Weight Painting Operators
 
 ## Change Brush
-The addon will force-register keybinds for this operator to the 1, 2, 3 keys in Weight Paint mode:
-1: Change to Add Brush.
-2: Change to Subtract Brush.
-3: Change to Blur Brush.
-The brushes must have their default name, ie. "Add", "Subtract", "Blur".
+The addon will force-register keybinds for this operator to the 1, 2, 3 keys in Weight Paint mode:  
+1: Change to Add Brush.  
+2: Change to Subtract Brush.  
+3: Change to Blur Brush.  
+The brushes must have their default name, ie. "Add", "Subtract", "Blur".  
 
 ## Toggle Weight Paint Mode
 This operator lets you switch into weight paint mode properly. 
@@ -30,19 +30,19 @@ Since this is meant to replace something, you can overwrite the shortcut of the 
 <img src="wp_context_menu_shortcut.png" width="500" />  
 
 ## Toggle Weight Cleaner
-Running this once will toggle a "Weight Cleaner" app handler. This will run the Clean Vertex Groups operator after every brush stroke while you're in weight paint mode. This is useful when you're using Auto-Normalize(which you should be) because it has an issue where it adds weights to 0-weights, resulting in small weight islands showing up all over the mesh as you work. The weight cleaner lets you avoid this by removing 0-weights as soon as they appear.  
+Running this once will toggle a "Weight Cleaner" app handler. **This will run the Clean Vertex Groups operator after every brush stroke** while you're in weight paint mode. This is useful when you're using Auto-Normalize(which you should be) because it has an issue where it adds weights to 0-weights, resulting in small weight islands showing up all over the mesh as you work. The weight cleaner lets you avoid this by removing 0-weights as soon as they appear.  
 
 # Rigging Operators
 
 ## X-Mirror Constraints
-Mirrors all constraints and drivers on a rig, assuming everything ends in .L/.R.
+Mirrors all constraints and drivers on a rig, assuming everything ends in .L/.R.  
 Driver mirroring is WIP/hardcoded to my workflow and naming, don't rely on it. Constraint mirroring should work really nicely though.
 
 ## Setup Action Constraints
 This operator is to help rig faces using Action constraints.  
 <img src="setup_action_constraints.png" width="700" />  
 
-It shows a popup with settings for the Action constraints that will be created.
+It shows a popup with settings for the Action constraints that will be created.  
 If there is already an Action constraint in the rig that targets the currently active Action, it pre-fills the popup with that constraint's settings. They can also be deleted or disabled.  
 Pressing OK will set all the constraints targetting this action to the specified settings.  
 For bones whose names don't end in .L/.R, we assume they are in the center of the face. It will create two copies of the constraint, one for the left and one for the right side, both with an influence of 0.5.  
@@ -58,24 +58,24 @@ Force apply mirror modifier on the active object by duplicating it, flipping it 
 This operator will apply uniform scale to a rigged armature while maintaining its constraints. It also applies the scaling to all actions used by the rig's Action constraints. (Optinally all actions in the whole scene)
 
 ### Join As Shape Key By UVs
-For when you have two meshes with identical topology and UVs, and want to combine them so you can blend from one to the other with a shape key. Just select both and run the operator.
+For when you have two meshes with identical topology and UVs, and want to combine them so you can blend from one to the other with a shape key. Just select both and run the operator.  
 
 ### Refresh Drivers
-Sometimes drivers in Blender decide to just fall asleep, or claim to have an error when they don't. Run this operator to refresh them, to make sure they don't complain about errors that don't exist.
+Sometimes drivers in Blender decide to just fall asleep, or claim to have an error when they don't. Run this operator to refresh them, to make sure they don't complain about errors that don't exist.  
 
 ### Reload Proxied Library
-If you have a linked and proxied character in a scene, you can use this to re-load that linked and proxied rig from another file, another collection, and even another rig, while preserving the rig's action and local constraints.  (Used when renaming directly linked stuff during production)
+If you have a linked and proxied character in a scene, you can use this to re-load that linked and proxied rig from another file, another collection, and even another rig, while preserving the rig's action and local constraints.  (Used when renaming directly linked stuff during production)  
 
 # Cleanup Operators
 
 ## Cleanup Blend
-Runs a bunch of shit, needs a popup, WIP.
+Runs a bunch of shit, needs a popup, WIP.  
 
 ## Cleanup Mesh
-Similar deal here, WIP.
+Similar deal here, WIP.  
 
 # Misc Operators
 ## Convert Images
-Converts all images of a certain extension referenced by this blend file according to the render settings of the scene.
-Images must be saved outside of the .blend file.
-Could also use a better popup probably, WIP.
+Converts all images of a certain extension referenced by this blend file according to the render settings of the scene.  
+Images must be saved outside of the .blend file.  
+Could also use a better popup probably, WIP.  
