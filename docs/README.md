@@ -1,5 +1,6 @@
-This repo is my random set of operators that I made to make my rigging workflow as painless as possible.
-There may be some extra stuff beside what's documented - assume that stuff is WIP.
+This addon is my random set of operators that I made to make my rigging workflow as painless as possible.  
+There may be some extra stuff beside what's documented - assume that stuff is WIP.  
+You can install this like any other Blender Addon - Download as zip, then in Blender go to Preferences->Addons->Install From File and browse the zip you downloaded.
 
 # Weight Painting Operators
 
