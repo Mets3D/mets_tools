@@ -68,8 +68,8 @@ If you have a linked and proxied character in a scene, you can use this to re-lo
 
 # Cleanup Operators
 
-#### Cleanup Blend
-Runs a bunch of shit, needs a popup, WIP.  
+#### Delete Unused Material Slots.
+This is the same as the built-in "Remove Unused Slots" operator, except it can work on all selected objects, or all objects, instead of just the active object.
 
 #### Cleanup Mesh
 Similar deal here, WIP.  

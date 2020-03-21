@@ -1,4 +1,52 @@
+import bpy
+
 # Collection of functions that are either used by other parts of the addon, or random code snippets that I wanted to include but aren't actually used.
+
+class EnsureVisible:
+	""" Class to ensure an object is visible, then reset it to how it was before. """
+	is_visible = False
+	temp_coll = None
+	obj_hide = False
+	obj_hide_viewport = False
+	obj = None
+
+	@classmethod
+	def ensure(cls, context, obj):
+		# Make temporary collection so we can ensure visibility.
+		if cls.is_visible:
+			print(f"Could not ensure visibility of object {obj.name}. Can only ensure the visibility of one object at a time. Must Run EnsureVisible.restore()!")
+			return
+		
+		coll_name = "temp_coll"
+		temp_coll = bpy.data.collections.get(coll_name)
+		if not temp_coll:
+			temp_coll = bpy.data.collections.new(coll_name)
+		if coll_name not in context.scene.collection.children:
+			context.scene.collection.children.link(temp_coll)
+	
+		if obj.name not in temp_coll.objects:
+			temp_coll.objects.link(obj)
+			cls.obj_hide = obj.hide_get()
+			obj.hide_set(False)
+			cls.obj_hide_viewport = obj.hide_viewport
+			obj.hide_viewport = False
+		
+		cls.obj = obj
+		cls.temp_coll = temp_coll
+		
+	@classmethod
+	def restore(cls):
+		# Delete temp collection
+		bpy.data.collections.remove(cls.temp_coll)
+		cls.temp_coll = None
+
+		cls.obj.hide_set(cls.obj_hide)
+		cls.obj.hide_viewport = cls.obj_hide_viewport
+
+		cls.obj_hide = False
+		cls.obj_hide_viewport = False
+
+		cls.is_visible=False
 
 def find_invalid_constraints(context, hidden_is_invalid=False):
 	# If hidden=True, disabled constraints are considered invalid.

@@ -9,12 +9,10 @@ from . import utils
 # More specifically, I wonder if the "All" settings, to operate on bpy.data.objects, will work, when some objects are hidden or disabled, etc.
 
 class DeleteUnusedMaterialSlots(bpy.types.Operator):
-	""" Delete material slots on selected objects that have no faces assigned. """
+	""" Delete material slots that have no faces assigned. """
 	bl_idname = "object.delete_unused_material_slots"
 	bl_label = "Delete Unused Material Slots"
 	bl_options = {'REGISTER', 'UNDO'}
-
-	# TODO: Add this to the UI, to the material arrow panel, with opt_active_only=True.
 
 	opt_objects: EnumProperty(name="Objects",
 		items=[	('Active', 'Active', 'Active'),
@@ -23,17 +21,13 @@ class DeleteUnusedMaterialSlots(bpy.types.Operator):
 				],
 		default='Selected',
 		description="Which objects to operate on")
-
-	def draw(self, context):
-		operator = self.layout.operator(DeleteUnusedMaterialSlots.bl_idname, text="Delete Unused Slots", icon='X')
-		operator.opt_objects = 'Active'
 	
 	def execute(self, context):
 		org_active = context.object
 
-		objs = context.selected_objects
-		if(self.opt_objects=='Active'):
-			objs = [context.object]
+		objs = [context.object]
+		if(self.opt_objects=='Selected'):
+			objs = context.selected_objects
 		elif(self.opt_objects=='All'):
 			objs = bpy.data.objects
 
@@ -42,20 +36,13 @@ class DeleteUnusedMaterialSlots(bpy.types.Operator):
 				obj.type!='MESH' or 
 				len(obj.data.polygons)==0): continue
 
+			utils.EnsureVisible.ensure(context, obj)
 			bpy.context.view_layer.objects.active = obj
-			used_mat_indices = []
-			for f in obj.data.polygons:
-				if(f.material_index not in used_mat_indices):
-					used_mat_indices.append(f.material_index)
-
-			# To remove the material slots, we iterate in reverse.
-			for i in range(len(obj.material_slots)-1, -1, -1):
-				if(i not in used_mat_indices):
-					obj.active_material_index = i
-					print("Removed material slot " + str(i))
-					bpy.ops.object.material_slot_remove()
+			bpy.ops.object.material_slot_remove_unused()
+			utils.EnsureVisible.restore()
 
 		bpy.context.view_layer.objects.active = org_active
+
 		return {'FINISHED'}
 
 class DeleteUnusedVGroups(bpy.types.Operator):
@@ -667,7 +654,6 @@ class CleanUpScene(bpy.types.Operator):
 
 def register():
 	from bpy.utils import register_class
-	bpy.types.MATERIAL_MT_context_menu.prepend(DeleteUnusedMaterialSlots.draw)
 	bpy.types.MESH_MT_vertex_group_context_menu.prepend(DeleteUnusedVGroups.draw_delete_unused)
 	register_class(DeleteUnusedMaterialSlots)
 	register_class(DeleteUnusedVGroups)
@@ -680,7 +666,6 @@ def register():
 
 
 def unregister():
-	bpy.types.MATERIAL_MT_context_menu.remove(DeleteUnusedMaterialSlots.draw)
 	bpy.types.TOPBAR_MT_file_import.remove(DeleteUnusedVGroups.draw_delete_unused)
 	from bpy.utils import unregister_class
 	unregister_class(DeleteUnusedMaterialSlots)
