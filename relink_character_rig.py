@@ -64,14 +64,13 @@ class ReProxy_Rigs(bpy.types.Operator):
 		description="Absolute path to the blendfile to re-link and re-proxy from"
 	)
 	collection_name: StringProperty(
-		name="Collection Name"
+		name="Collection Name",
 		description="Name of the collection to link"
 	)
 	rig_name: StringProperty(
 		name="Rig Name",
 		description="Name of the rig to create a proxy of"
 	)
-	
 	constraint_mode: EnumProperty(
 		name="Copy Constraints", 
 		items = [

@@ -29,7 +29,7 @@ class WeightCleaner:
 			cls.do_clean = False
 			cls.cleaning_in_progress = True
 			# Note: It is very important that this call NEVER fails.
-			bpy.ops.object.vertex_group_clean(limit=0.001) # This will trigger a depsgraph update, and therefore clean_weights, again.
+			bpy.ops.object.vertex_group_clean(group_select_mode='ALL', limit=0.001) # This will trigger a depsgraph update, and therefore clean_weights, again.
 			cls.cleaning_in_progress = False
 
 	@classmethod
