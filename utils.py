@@ -8,7 +8,6 @@ class EnsureVisible:
 	temp_coll = None
 	obj_hide = False
 	obj_hide_viewport = False
-	obj = None
 
 	@classmethod
 	def ensure(cls, context, obj):
@@ -35,13 +34,14 @@ class EnsureVisible:
 		cls.temp_coll = temp_coll
 		
 	@classmethod
-	def restore(cls):
+	def restore(cls, obj):
 		# Delete temp collection
-		bpy.data.collections.remove(cls.temp_coll)
+		if not cls.temp_coll:
+			return
 		cls.temp_coll = None
 
-		cls.obj.hide_set(cls.obj_hide)
-		cls.obj.hide_viewport = cls.obj_hide_viewport
+		obj.hide_set(cls.obj_hide)
+		obj.hide_viewport = cls.obj_hide_viewport
 
 		cls.obj_hide = False
 		cls.obj_hide_viewport = False

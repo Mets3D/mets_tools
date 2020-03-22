@@ -2,11 +2,12 @@ import bmesh
 import bpy
 from bpy.props import *
 from . import utils
+from math import pi
 
 # TODO testing:
 # Mirror modifier vertex groups getting spared when they should
 # Oh, and also everything else.
-# More specifically, I wonder if the "All" settings, to operate on bpy.data.objects, will work, when some objects are hidden or disabled, etc.
+# Make sure operators that are meant to operate on ALL objects work (including hidden shit, via utils.EnsureVisible)
 
 class DeleteUnusedMaterialSlots(bpy.types.Operator):
 	""" Delete material slots that have no faces assigned. """
@@ -32,21 +33,21 @@ class DeleteUnusedMaterialSlots(bpy.types.Operator):
 			objs = bpy.data.objects
 
 		for obj in objs:
-			if(type(obj)!=bpy.types.Object or 
-				obj.type!='MESH' or 
+			if(type(obj)!=bpy.types.Object or
+				obj.type!='MESH' or
 				len(obj.data.polygons)==0): continue
 
 			utils.EnsureVisible.ensure(context, obj)
 			bpy.context.view_layer.objects.active = obj
 			bpy.ops.object.material_slot_remove_unused()
-			utils.EnsureVisible.restore()
+			utils.EnsureVisible.restore(obj)
 
 		bpy.context.view_layer.objects.active = org_active
 
 		return {'FINISHED'}
 
 class DeleteUnusedVGroups(bpy.types.Operator):
-	""" Delete vertex groups that have no weights AND aren't being used by any modifiers(including Mirror) AND aren't used as mask by any shape keys AND don't correlate to any bones """
+	""" Delete unused vertex groups. Is aware of modifier fields that take vertex groups, including physics and Mirror modifier, and also checks shape key mask vertex groups. """
 	bl_idname = "object.delete_unused_vgroups"
 	bl_label = "Delete Unused Vertex Groups"
 	bl_options = {'REGISTER', 'UNDO'}
@@ -69,15 +70,7 @@ class DeleteUnusedVGroups(bpy.types.Operator):
 
 	opt_save_nonzero_vgroups: BoolProperty(name="Save Any Weights",
 		default=False,
-		description="Don't delete vertex groups that have any non-zero weights. Considers Mirror modifier")
-	
-	opt_save_modifier_vgroups: BoolProperty(name="Save Modifier Groups",
-		default=True,
-		description="Don't delete vertex groups that are referenced by a modifier, including physics settings")
-
-	opt_save_shapekey_vgroups: BoolProperty(name="Save Shape Key Groups",
-		default=True,
-		description="Don't delete vertex groups that are used by a shape key as a mask")
+		description="Don't delete vertex groups that have any non-zero weights. Considers Mirror modifier.")
 	
 	@classmethod
 	def poll(cls, context):
@@ -90,15 +83,18 @@ class DeleteUnusedVGroups(bpy.types.Operator):
 	def execute(self, context):
 		org_active = context.object
 
-		objs = context.selected_objects
-		if(self.opt_objects=='Active'):
-			objs = [context.object]
+		objs = [context.object]
+		if(self.opt_objects=='Selected'):
+			objs = context.selected_objects
 		elif(self.opt_objects=='All'):
 			objs = bpy.data.objects
 
 		for obj in objs:
+			if obj.type != 'MESH': continue
 			if(len(obj.vertex_groups) == 0): continue
 			
+			utils.EnsureVisible.restore(obj)
+			utils.EnsureVisible.ensure(context, obj)
 			bpy.context.view_layer.objects.active = obj
 
 			# Clean 0 weights
@@ -113,40 +109,27 @@ class DeleteUnusedVGroups(bpy.types.Operator):
 					if(type(value)==str):
 						vg = obj.vertex_groups.get(value)
 						if(vg):
-							safe_groups.append(vg)
+							safe_groups.append(vg.name)
 
-			# Save any vertex groups used by modifier parameters.
-			if(self.opt_save_modifier_vgroups):
-				for m in obj.modifiers:
-					save_groups_by_attributes(m)
-					if(hasattr(m, 'settings')):	#Physics modifiers
-						save_groups_by_attributes(m.settings)
+			for m in obj.modifiers:
+				save_groups_by_attributes(m)
+				if(hasattr(m, 'settings')):	#Physics modifiers
+					save_groups_by_attributes(m.settings)
 
 			# Save any vertex groups used by shape keys.
-			if(self.opt_save_shapekey_vgroups):
+			if obj.data.shape_keys:
 				for sk in obj.data.shape_keys.key_blocks:
 					vg = obj.vertex_groups.get(sk.vertex_group)
-					if(vg and vg not in safe_groups):
-						safe_groups.append(vg)
+					if(vg and vg.name not in safe_groups):
+						safe_groups.append(vg.name)
 
-			# Getting a list of bone names from all armature modifiers.
-			bone_names = []
+			# Saving any vertex groups that correspond to a deform bone name
 			for m in obj.modifiers:
 				if(m.type == 'ARMATURE'):
 					armature = m.object
 					if armature is None:
 						continue
-					if(bone_names is None):
-						bone_names = [b.name for b in armature.data.bones]
-					else:
-						bone_names.extend([b.name for b in armature.data.bones])
-			
-			# Saving any vertex groups that correspond to a bone name
-			if(self.opt_save_bone_vgroups):
-				for bn in bone_names:
-					vg = obj.vertex_groups.get(bn)
-					if(vg):
-						safe_groups.append(vg)
+					safe_groups.extend([b.name for b in armature.data.bones if b.use_deform])
 				
 			# Saving vertex groups that have any weights assigned to them, also considering mirror modifiers
 			if(self.opt_save_nonzero_vgroups):
@@ -154,20 +137,20 @@ class DeleteUnusedVGroups(bpy.types.Operator):
 					for i in range(0, len(obj.data.vertices)):	# For each vertex
 						try:
 							vg.weight(i)							# If there's a weight assigned to this vert (else exception)
-							if(vg not in safe_groups):
-								safe_groups.append(vg)
+							if(vg.name not in safe_groups):
+								safe_groups.append(vg.name)
 								
 								opp_name = utils.flip_name(vg.name)
 								opp_group = obj.vertex_groups.get(opp_name)
 								if(opp_group):
-									safe_groups.append(opp_group)
+									safe_groups.append(opp_group.name)
 								break
 						except RuntimeError:
 							continue
 			
 			# Clearing vertex groups that didn't get saved
 			for vg in obj.vertex_groups:
-				if(vg not in safe_groups):
+				if(vg.name not in safe_groups):
 					print("Unused vgroup removed: "+vg.name)
 					obj.vertex_groups.remove(vg)
 		
@@ -269,100 +252,6 @@ def clean_node_tree(node_tree, delete_unused_nodes=True, fix_groups=False, cente
 						else:
 							n.node_tree.name = n.node_tree.name[:-4]
 
-class CleanUpAction(bpy.types.Operator):
-	"""Remove keyframes and curves that don't do anything from Actions."""
-	bl_idname = "action.clean_up"
-	bl_label = "Clean Up Action"
-	bl_options = {'REGISTER', 'UNDO'}
-
-	opt_all: BoolProperty(name="All Actions", default=False)
-	# opt_method: EnumProperty(name="Cleanup Method",
-	# 	items=(
-	# 		("INDIVIDUAL", "Individual", "If an individual curve doesn't do anything, remove it."),
-	# 		("TRANSFORM", "Per Transform Group", "If an entire group of curves don't do anything, remove them. Eg, only remove rotation curves if none of the rotation curves do anything."),
-	# 		("BONE", "Per Bone", "Only remove curves if all curves belonging to that bone don't do anything.")
-	# 	),
-	# 	default="TRANSFORM")
-	# opt_delete_default: BoolProperty(name="Delete Base Keyframes", description="If a curve only has one keyframe, and that keyframe is the default pose, delete it.", default=True)
-
-	def execute(self, context):
-		actions = bpy.data.actions if self.opt_all else [context.object.animation_data.action]
-
-		for action in actions:
-			bad_curves = {}	# Dict of data_path:[curves] where the list of curves is all curves for that data path(different array_index value though)
-			for curve in action.fcurves:
-				bad_kfs = []
-				for i, kf in enumerate(curve.keyframe_points):
-					if i==0: continue
-
-					if kf.co[1] == curve.keyframe_points[i-1].co[1]: 			# Keyframe same as previous one
-						if i != len(curve.keyframe_points)-1: 					# This is not the last keyframe
-							if kf.co[1] == curve.keyframe_points[i+1].co[1]:	# And keyframe same as next one
-								bad_kfs.append(kf)
-						else:
-							bad_kfs.append(kf)
-				
-				# Delete marked keyframes.
-				for bkf in bad_kfs:
-					try:	# TODO Idk why but it seems bad_kfs is sometimes not re-initialized as an empty list???
-						curve.keyframe_points.remove(bkf)
-					except: pass
-
-				# Mark bad curve if there is only one keyframe and it is a default pose keyframe.
-				if len(curve.keyframe_points) == 1:
-					kf = curve.keyframe_points[0]
-					bad = False
-					if "scale" in curve.data_path:
-						if kf.co[1] == 1.0:
-							bad = True
-					else:
-						if kf.co[1] == 1.0 and "rotation_quaternion" in curve.data_path and curve.array_index==0:
-							bad = True
-						elif kf.co[1] == 0.0:
-							bad = True
-					if bad:
-						if curve.data_path not in bad_curves:
-							bad_curves[curve.data_path] = []
-						bad_curves[curve.data_path].append(curve)
-			
-			for group in bad_curves.keys():
-				# For now, just delete all bad curves.
-				for curve in bad_curves[group]:
-					action.fcurves.remove(curve)
-					# TODO:
-					# based on opt_method, check if other required curves are marked for delete.
-					# If they all are, delete them all (and only then).
-		
-		return {'FINISHED'}
-
-class CleanUpArmature(bpy.types.Operator):
-	# TODO: turn into a valid operator
-	# TODO: disable Deform tickbox on bones with no corresponding vgroups. (This would ideally be done before vgroup cleanup) - Always print a warning for this.
-	# TODO: vice versa, warn if a non-deform bone has a corresponding vgroup.
-	def execute(self, context):
-		armature = context.object
-
-		if(type(armature) != bpy.types.Object or 
-			armature.type != 'ARMATURE' ): return {'CANCELLED'}
-
-		for b in armature.pose.bones:
-			# Closing and naming bone constraints
-			for c in b.constraints:
-				c.show_expanded = False
-				if(c.type=='ACTION'):
-					c.name = "Action_" + c.action.name
-		
-		# Making B-Bone thickness and envelope properties consistent
-		for b in armature.data.bones:
-			b.bbone_x = 0.005
-			b.bbone_z = 0.005
-			b.head_radius = 0.01
-			b.tail_radius = 0.01
-			b.envelope_distance = 0.03
-			b.envelope_weight = 1
-			
-		return {'FINISHED'}
-
 class CleanUpMaterials(bpy.types.Operator):
 	bl_idname = "material.clean_up"
 	bl_label = "Clean Up Material"
@@ -377,12 +266,12 @@ class CleanUpMaterials(bpy.types.Operator):
 		description="Which objects to operate on")
 
 	opt_fix_name: BoolProperty(name="Fix .00x Material Names", 
-		default=False, 
+		default=True, 
 		description="Materials ending in .001 or similar will be attempted to be renamed")
 		
 	opt_delete_unused_nodes: BoolProperty(name="Clear Unused Nodes", 
-		default=False, 
-		description="Clear all nodes (except Frames) in all materials that aren't linked to the 'Material Output' node")
+		default=True, 
+		description="Clear all nodes (except Frames) in all materials that aren't linked to an output node")
 		
 	opt_hide_sockets: BoolProperty(name="Hide Node Sockets", 
 		default=False, 
@@ -397,7 +286,7 @@ class CleanUpMaterials(bpy.types.Operator):
 		description="If a texture node references a texture ending in .00x but a texture without it exists, change the reference. If such texture doesn't exist, rename it")
 
 	opt_rename_nodes: BoolProperty(name="Rename Texture Nodes",
-		default=False,
+		default=True,
 		description="Rename and relabel texture nodes to the filename of their image, without extension")
 
 	opt_set_tex_widths: IntProperty(name="Set Texture Node Widths",
@@ -416,6 +305,7 @@ class CleanUpMaterials(bpy.types.Operator):
 			objs = bpy.data.objects
 		
 		for o in objs:
+			if o.type!='MESH': continue
 			for ms in o.material_slots:
 				m = ms.material
 				if(m==None or m in mats_done): continue
@@ -440,54 +330,41 @@ class CleanUpMaterials(bpy.types.Operator):
 					)
 				mats_done.append(m)
 		return {'FINISHED'}
+	
+	def invoke(self, context, event):
+		wm = context.window_manager
+		return wm.invoke_props_dialog(self)
 
 class CleanUpObjects(bpy.types.Operator):
 	bl_idname = "object.clean_up"
 	bl_label = "Clean Up Objects"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	opt_objects: EnumProperty(name="Objects",
-		items=[	('Active', 'Active', 'Active'),
-				('Selected', 'Selected', 'Selected'),
-				('All', 'All', 'All')
-				],
-		description="Which objects to operate on")
+	opt_objects: EnumProperty(
+		name		= "Objects",
+		items		= [	('Active', 'Active', 'Active'),
+						('Selected', 'Selected', 'Selected'),
+						('All', 'All', 'All')
+					],
+		description = "Which objects to operate on")
 
 	opt_rename_data: BoolProperty(
-		name="Rename Datas", 
-		default=True, 
-		description="If an object or armature is named 'Apple', its data will be renamed to 'Data_Apple'")
-	
+		name		= "Rename Datas", 
+		default		= True, 
+		description = "If an object or armature is named 'Apple', its data will be renamed to 'Data_Apple'")
+
 	opt_rename_uvs: BoolProperty(
-		name="Rename UV Maps", 
-		default=True, 
-		description="If an object has only one UVMap, rename that to the default: 'UVMap'")
+		name		= "Rename UV Maps", 
+		default		= True, 
+		description = "If an object has only one UVMap, rename that to the default: 'UVMap'")
 
-	opt_clean_material_slots: BoolProperty(
-		name="Clean Material Slots",
-		default=True,
-		description="Delete material slots on selected objects that have no faces assigned")
-
-	opt_rename_materials: BoolProperty(
-		name="Fix .00x Material Names", 
-		default=False, 
-		description="Materials ending in .001 or similar will be attempted to be renamed")
-
-	opt_clean_materials: BoolProperty(
-		name="Clean Material Nodes",
-		default=False,
-		description="Remove unused nodes, resize and rename image nodes, hide unused group node sockets, and center nodes")
-
-	opt_clean_vgroups: BoolProperty(name="Clear Unused Vertex Groups", 
-		default=True, 
-		description="Clear unused vertex groups")
-	
 	opt_create_mirror_vgroups: BoolProperty(
-		name="Create Mirror Vertex Groups",
-		default=True,
-		description="If there is a Mirror modifier, create any missing left/right sided vertex groups")
+		name		= "Create Mirror Vertex Groups",
+		default		= True,
+		description = "If there is a Mirror modifier, create any missing left/right sided vertex groups")
 
 	def execute(self, context):
+		bpy.ops.object.mode_set(mode="OBJECT")
 		org_active = context.object
 
 		objs = context.selected_objects
@@ -501,7 +378,7 @@ class CleanUpObjects(bpy.types.Operator):
 			(obj.type != 'MESH' and 
 			obj.type != 'ARMATURE') ): continue
 
-			bpy.ops.object.mode_set(mode="OBJECT")
+			utils.EnsureVisible.ensure(context, obj)
 			bpy.context.view_layer.objects.active = obj
 			
 			# Naming mesh/skeleton data blocks
@@ -545,134 +422,145 @@ class CleanUpObjects(bpy.types.Operator):
 							if(flippedName not in vgs):
 								obj.vertex_groups.new(name=flippedName)
 						break
-				
-		# Deleting unused material slots
-		if(self.opt_clean_material_slots):
-			bpy.ops.object.delete_unused_material_slots(opt_objects=self.opt_objects)
-
-		# Cleaning node trees
-		bpy.ops.material.clean_up(
-			opt_objects				= self.opt_objects, 
-			opt_fix_name			= self.opt_rename_materials, 
-			opt_delete_unused_nodes	= self.opt_clean_materials, 
-			opt_fix_groups			= self.opt_clean_materials, 
-			opt_fix_tex_refs		= self.opt_clean_materials, 
-			opt_rename_nodes		= self.opt_clean_materials
-		)
-
-		if(self.opt_clean_vgroups):
-			bpy.ops.object.delete_unused_vgroups(opt_objects=self.opt_objects)
 		
+			utils.EnsureVisible.restore(obj)
+
 		bpy.context.view_layer.objects.active = org_active
+		
 		return {'FINISHED'}
 
-class CleanUpScene(bpy.types.Operator):
-	bl_idname = "scene.clean_up"
-	bl_label = "Clean Up Scene"
+class CleanUpMeshes(bpy.types.Operator):
+	""" Clean up meshes of selected objects. """
+	bl_idname = "object.mesh_cleanup"
+	bl_label = "Clean Up Mesh"
 	bl_options = {'REGISTER', 'UNDO'}
+
+	remove_doubles: bpy.props.BoolProperty(
+		name="Remove Doubles",
+		description="Enable remove doubles",
+		default=False
+	)
+	quadrangulate: bpy.props.BoolProperty(
+		name="Tris to Quads",
+		description="Enable Tris to Quads (UV Seams enabledd)",
+		default=False
+	)
+	weight_normals: bpy.props.BoolProperty(
+		name="Weight Normals",
+		description="Enable weighted normals",
+		default=False
+	)
+	seams_from_islands: bpy.props.BoolProperty(
+		name="Seams from Islands",
+		description="Create UV seams based on UV islands",
+		default=False
+	)
+	clear_unused_UVs: bpy.props.BoolProperty(
+		name="Delete Unused UV Maps",
+		description="If all UV verts' X coordinate is 0, the UV map will be deleted.",
+		default=True
+	)
 	
-	opt_freeze: BoolProperty(
-		name="Freeze Operator", 
-		default=False, 
-		description="Freeze the operator to change settings without having to wait for the operator to run")
-	
-	opt_selected_only: BoolProperty(
-		name="Selected Objects",
-		default=True,
-		description="DIsable to affect all objects")
-
-	opt_removeUnusedMats: BoolProperty(
-		name="Clean Material Slots", 
-		default=True, 
-		description="If a material has no faces assigned to it, it will be removed from the object. Objects with no faces are ignored")
-
-	opt_clean_worlds: BoolProperty(
-		name="Clean Worlds",
-		default=True,
-		description="Clean up World node setups")
-	
-	opt_clean_comp: BoolProperty(
-		name="Clean Compositing",
-		default=True,
-		description="Clean up Compositing nodes")
-
-	opt_clean_nodegroups: BoolProperty(
-		name="Clean Nodegroups",
-		default=True,
-		description="Clean up Nodegroups")
-
-	opt_clean_vgroups: BoolProperty(name="Clear Unused Vertex Groups", 
-		default=True, 
-		description="Clear unused vertex groups")
-
-	opt_clean_material_slots: BoolProperty(
-		name="Clean Material Slots",
-		default=True,
-		description="Delete material slots on selected objects that have no faces assigned")
-
-	opt_rename_materials: BoolProperty(
-		name="Fix .00x Material Names", 
-		default=False, 
-		description="Materials ending in .001 or similar will be attempted to be renamed")
-
-	opt_clean_materials: BoolProperty(
-		name="Clean Material Nodes",
-		default=True,
-		description="Remove unused nodes, resize and rename image nodes, hide unused group node sockets, and center nodes")
-
 	def execute(self, context):
-		if(self.opt_freeze):
-			return {'FINISHED'}
+		for obj in bpy.context.selected_objects:
+			# Mode management
+			org_active = bpy.context.object
+			org_mode = org_active.mode
+			org_selected = bpy.context.selected_objects[:]
+			bpy.ops.object.mode_set(mode='OBJECT')
+			bpy.ops.object.select_all(action='DESELECT')
+			obj.select_set(True)
 
-		org_active = bpy.context.view_layer.objects.active
+			
+			utils.EnsureVisible.ensure(context, obj)
+			bpy.context.view_layer.objects.active = obj
+			bpy.ops.object.mode_set(mode='EDIT')
+			
+			# Unhide and deselect verts
+			bpy.ops.mesh.reveal()
+			bpy.ops.mesh.select_all(action='DESELECT')
 
-		if(self.opt_clean_worlds):
-			for w in bpy.data.worlds:
-				if(w.use_nodes):
-					clean_node_tree(w.node_tree)
+			# Renaming shape key blocks
+			if(obj.data.shape_keys is not None):
+				obj.data.shape_keys.name = "Keys_" + obj.name
 
-		if(self.opt_clean_comp):
-			for s in bpy.data.scenes:
-				if(s.use_nodes):
-					clean_node_tree(s.node_tree)
-		
-		if(self.opt_clean_nodegroups):
-			for nt in bpy.data.node_groups:
-				clean_node_tree(nt)
-		
-		objects = 'Selected' if self.opt_selected_only else 'All'
-		bpy.ops.object.clean_up(
-			opt_objects				 = objects, 
-			opt_clean_vgroups		 = self.opt_clean_vgroups, 
-			opt_clean_material_slots = self.opt_clean_material_slots, 
-			opt_rename_materials	 = self.opt_rename_materials, 
-			opt_clean_materials		 = self.opt_clean_materials
-		)
-		
-		bpy.context.view_layer.objects.active = org_active
+			# Setting auto-smooth to 180 is necessary so that splitnormals_clear() doesn't mark sharp edges
+			obj.data.use_auto_smooth = True
+			org_angle = obj.data.auto_smooth_angle
+			obj.data.auto_smooth_angle = pi
+			bpy.ops.mesh.customdata_custom_splitnormals_clear()
+			obj.data.auto_smooth_angle = org_angle
+
+			# Tris to Quads
+			if(self.quadrangulate):
+				bpy.ops.mesh.tris_convert_to_quads(shape_threshold=1.0472, uvs=True, materials=True)
+			
+			# Remove Doubles / Merge By Distance
+			if(self.remove_doubles):
+				bpy.ops.mesh.remove_doubles(threshold=0.0001)
+			
+			bpy.ops.object.mode_set(mode='OBJECT')
+			if(self.weight_normals):
+				bpy.ops.object.calculate_weighted_normals()
+			bpy.ops.object.mode_set(mode='EDIT')
+			
+			### Removing useless UVMaps
+			if(self.clear_unused_UVs):
+				mesh = obj.data
+				bm = bmesh.from_edit_mesh(mesh)
+
+				# Invalid UV maps usually have all the verts on the top left or top right corner, so that's what we'll be checking for.
+				# If all verts of a UV map have an X coordinate of 0, we're deleting it.
+
+				for uv_idx in reversed(range(0, len(mesh.uv_layers))):			# For each UV layer (in reverse, since we're deleting)
+					delet_this=True
+					mesh.uv_layers.active_index = uv_idx
+					bm.faces.ensure_lookup_table()
+					for f in bm.faces:						# For each face
+						for l in f.loops:					# For each loop(whatever that means)
+							if(l[bm.loops.layers.uv.active].uv[0] != 0.0):	# If the loop's UVs first vert's x coord is NOT 0
+								delet_this=False
+								break
+						if(delet_this==False):
+							break
+					if(delet_this):
+						obj.data.uv_layers.remove(obj.data.uv_layers[uv_idx])
+			
+				bmesh.update_edit_mesh(mesh, True)
+			
+			# Seams from islands
+			if(self.seams_from_islands):
+				bpy.ops.uv.seams_from_islands(mark_seams=True, mark_sharp=False)
+			
+			# Mode management
+			bpy.ops.object.mode_set(mode='OBJECT')
+			for o in org_selected:
+				o.select_set(True)
+				
+			utils.EnsureVisible.restore(obj)
+			bpy.context.view_layer.objects.active = org_active
+			bpy.ops.object.mode_set(mode=org_mode)
+
 		return {'FINISHED'}
+		
+	def invoke(self, context, event):
+		wm = context.window_manager
+		return wm.invoke_props_dialog(self)
 
 def register():
 	from bpy.utils import register_class
 	bpy.types.MESH_MT_vertex_group_context_menu.prepend(DeleteUnusedVGroups.draw_delete_unused)
 	register_class(DeleteUnusedMaterialSlots)
 	register_class(DeleteUnusedVGroups)
-	register_class(CleanUpObjects)
-	#register_class(CleanUpMeshes)
-	#register_class(CleanUpArmatures)
 	register_class(CleanUpMaterials)
-	register_class(CleanUpScene)
-	register_class(CleanUpAction)
-
+	register_class(CleanUpObjects)
+	register_class(CleanUpMeshes)
 
 def unregister():
 	bpy.types.TOPBAR_MT_file_import.remove(DeleteUnusedVGroups.draw_delete_unused)
 	from bpy.utils import unregister_class
 	unregister_class(DeleteUnusedMaterialSlots)
 	unregister_class(DeleteUnusedVGroups)
-	unregister_class(CleanUpObjects)
-	#unregister_class(CleanUpMeshes)
-	#unregister_class(CleanUpArmatures)
 	unregister_class(CleanUpMaterials)
-	unregister_class(CleanUpScene)
-	unregister_class(CleanUpAction)
+	unregister_class(CleanUpObjects)
+	unregister_class(CleanUpMeshes)

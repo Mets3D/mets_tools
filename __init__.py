@@ -34,7 +34,6 @@ from . import create_lightmap_uvs
 from . import make_physics_bones
 from . import cleanup_blend
 from . import make_modifiers_consistent
-from . import cleanup_mesh
 from . import weighted_normals
 from . import convert_images
 from . import smart_weight_transfer
@@ -42,7 +41,6 @@ from . import join_as_shape_key_by_uvs
 from . import force_apply_mirror
 from . import rename_skeleton_to_metsrig
 from . import mirror_constraints
-from . import make_right_vgroups
 from . import setup_action_constraints
 from . import armature_apply_scale
 from . import scale_control_to_bbone_handles
@@ -59,7 +57,6 @@ def register():
 	make_physics_bones.register()
 	cleanup_blend.register()
 	make_modifiers_consistent.register()
-	cleanup_mesh.register()
 	weighted_normals.register()
 	convert_images.register()
 	smart_weight_transfer.register()
@@ -67,7 +64,6 @@ def register():
 	force_apply_mirror.register()
 	rename_skeleton_to_metsrig.register()
 	mirror_constraints.register()
-	make_right_vgroups.register()
 	setup_action_constraints.register()
 	armature_apply_scale.register()
 	scale_control_to_bbone_handles.register()
@@ -84,7 +80,6 @@ def unregister():
 	make_physics_bones.unregister()
 	cleanup_blend.unregister()
 	make_modifiers_consistent.unregister()
-	cleanup_mesh.unregister()
 	weighted_normals.unregister()
 	convert_images.unregister()
 	smart_weight_transfer.unregister()
@@ -92,7 +87,6 @@ def unregister():
 	force_apply_mirror.unregister()
 	rename_skeleton_to_metsrig.unregister()
 	mirror_constraints.unregister()
-	make_right_vgroups.unregister()
 	setup_action_constraints.unregister()
 	armature_apply_scale.unregister()
 	scale_control_to_bbone_handles.unregister()
