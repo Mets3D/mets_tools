@@ -96,7 +96,8 @@ class WeightCleaner:
 	
 	@classmethod
 	def clean_weights(cls, scene, depsgraph):
-		if not bpy.context or not bpy.context.object or bpy.context.mode!='PAINT_WEIGHT': return
+		if bpy.context.mode!='PAINT_WEIGHT': return
+		if not bpy.context or or not hasattr(bpy.context, 'object') or not bpy.context.object: return
 		if not cls.cleaner_active: return
 		if cls.can_clean:
 			cls.can_clean = False
