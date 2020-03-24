@@ -50,18 +50,17 @@ For bones whose names don't end in .L/.R, we assume they are in the center of th
 This is meant to replace the default Ctrl+G menu in pose mode.  
 <img src="assign_bone_group.png" width="250" />  
 
-#### Refresh Drivers
+### Refresh Drivers
 Sometimes drivers in Blender decide to just fall asleep, or claim to have an error when they don't. Run this operator to refresh them, to make sure they don't complain about errors that don't exist.  
 
 ### Apply Armature Scale
 This operator will apply uniform scale to a rigged armature while maintaining its constraints. It also applies the scaling to all actions used by the rig's Action constraints. (Optinally all actions in the whole scene)
 
-#### Reload Proxied Library
+### Reload Proxied Library
 If you have a linked and proxied character in a scene, you can use this to re-load that linked and proxied rig from another file, another collection, and even another rig, while preserving the rig's action and local constraints.  (Used when renaming directly linked stuff during production)  
 
 # Cleanup Operators
-The organization of functionality here could use some better organization, but these should be fairly usable.  
-These operators are also short on testing, so errors are possible.
+The organization of functionality here could be better, but these should be fairly usable. If you run into straight up errors, let me know.  
 
 ### Delete Unused Vertex Groups
 Deletes unused vertex groups, "unused" being very carefully defined.  
@@ -69,13 +68,13 @@ It will check for vertex groups used by any modifiers and shape keys, and not de
 There's options to consider vertex groups with any weights as used, and consider vertex groups corresponding to a deforming bone as used, even if empty.  
 
 ### Delete Unused Material Slots
-This is the same as the built-in "Remove Unused Slots" operator, except it can work on all selected objects, or all objects, instead of just the active object.
+This just calls the built-in "Remove Unused Slots" operator, except it can work on all selected objects, or all objects, instead of just the active object.
 
 ### Clean Up Materials
-Deletes unused nodes, centers node graphs, fixed .00x names on materials and textures, sets names and labels for texture nodes, and sets width for texture nodes.
+Deletes unused nodes, centers node graphs, fixes .00x names on materials and textures, sets names and labels for texture nodes, and sets width for texture nodes.
 
 ### Clean Up Objects
-Renames object datas to "Data_ObjectName", UV maps to "UVMap" when there is only one, and creates missing vertex groups for Mirror modifier. (eg. Leg.L exists but Leg.R doesn't)
+Renames object datas to "Data_ObjectName", UV maps to "UVMap" when there is only one, and creates missing vertex groups for Mirror modifier. (eg. when your mesh has a Mirror modifier and Leg.L vertex group exists but Leg.R doesn't)
 
 ### Clean Up Meshes
 Unhide All, Removes Doubles, Quadrangulate(Compare UVs), Weight Normals, Seams From Islands.  
@@ -84,7 +83,7 @@ Also removes UV Maps that don't actually contain a UV layout (every UV vertex in
 # Misc Operators
 
 ### Force Apply Mirror Modifier
-Force apply mirror modifier on the active mesh object by duplicating it, flipping it on the X axis, merging into the original. It will also flip vertex groups, shape keys, shape key masks, and even shape key drivers, assuming everything is named with .L/.R suffixes.
+Force apply mirror modifier on the active mesh object by duplicating it, flipping it on the X axis, merging into the original. It will also flip vertex groups, shape keys, shape key masks, and even (attempt) shape key drivers, assuming everything is named with .L/.R suffixes.  
 
 ### Join As Shape Key By UVs
 For when you have two meshes with identical topology and UVs, and want to combine them so you can blend from one to the other with a shape key. Just select both and run the operator.  

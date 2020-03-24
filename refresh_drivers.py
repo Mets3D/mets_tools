@@ -1,20 +1,21 @@
 import bpy
 from bpy.props import *
 
-def refresh_drivers(thing):
-	if not thing: return
-	if not thing.animation_data: return
-	for d in thing.animation_data.drivers:
+def refresh_drivers(datablock):
+	if not datablock: return
+	if not hasattr(datablock, "animation_data"): return
+	if not datablock.animation_data: return
+	for d in datablock.animation_data.drivers:
 		if d.driver.type != 'SCRIPTED': continue
 		d.driver.expression = d.driver.expression
 
 class RefreshDrivers(bpy.types.Operator):
 	"""Refresh drivers, ensuring no valid drivers are marked as invalid"""
-	# This exists because sometimes Blender decides that a perfectly valid driver is not valid.
+
 	bl_idname = "object.refresh_drivers"
 	bl_label = "Refresh Drivers"
 	bl_options = {'REGISTER', 'UNDO'}
-	
+
 	selected_only: BoolProperty(name="Only Selected Objects", default=True)
 
 	def execute(self, context):
