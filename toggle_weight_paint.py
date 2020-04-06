@@ -43,6 +43,11 @@ class ToggleWeightPaint(bpy.types.Operator):
 		if(enter_wp):
 			### Entering weight paint mode. ###
 
+			# If the mesh object's display mode was anything other than Solid or Textured, store it, as we'll have to change it. and then change it back.
+			if obj.display_type not in ['SOLID', 'TEXTURED']:
+				obj['wpt_display_type'] = obj.display_type
+				obj.display_type = 'SOLID'
+
 			# Store old shading settings in a dict custom property
 			if('wpt' not in context.screen):
 				context.screen['wpt'] = {}
@@ -88,6 +93,12 @@ class ToggleWeightPaint(bpy.types.Operator):
 
 		else:
 			### Leaving weight paint mode. ###
+
+			# Restore object display type
+			if 'wpt_display_type' in obj:
+				obj.display_type = obj['wpt_display_type']
+				del obj['wpt_display_type']
+
 			if('wpt' in context.screen):
 				info = context.screen['wpt'].to_dict()
 				# Restore mode.

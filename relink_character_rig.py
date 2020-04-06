@@ -1,6 +1,9 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty
 
+# TODO: Saving constraint doesn't work when the constraint's target object is the proxy rig itself. Need a special keyword or something for this case!
+# TODO: Would be nice if we made the new proxy rig active, entered the object mode(eg. pose mode) and set the active bone to what it was originally, if found.
+
 def read_constraint(constraint):
 	skip = []
 	attribs = {}
