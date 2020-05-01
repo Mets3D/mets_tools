@@ -154,6 +154,18 @@ def mirror_constraint(armature, bone, constraint, allow_split=True):
 						opp_kf.handle_left[1] *=-1
 						opp_kf.handle_right[1] *=-1
 
+	elif(c.type=='DAMPED_TRACK'):
+		axis_mapping = {
+			# 'TRACK_NEGATIVE_X' : 'TRACK_X',
+			# 'TRACK_X' : 'TRACK_NEGATIVE_X',
+			# 'TRACK_NEGATIVE_Z' : 'TRACK_Z',
+			# 'TRACK_Z' : 'TRACK_NEGATIVE_Z'
+		}
+		if opp_c.track_axis in axis_mapping.keys():
+			opp_c.track_axis = axis_mapping[c.track_axis]
+		# TODO: Figure this out. Having a simple dict is not enough, bone roll matters.
+		# TODO: Test other tracking constraints: Locked Track, Track To.
+
 	elif(c.type=='ARMATURE'):
 		for t in c.targets:
 			opp_t = opp_c.targets.new()

@@ -138,7 +138,7 @@ def find_or_create_constraint(pb, ctype, name=None):
 	return c
 
 def bone_search(armature, search=None, start=None, end=None, edit_bone=False, selected=True):
-	""" Convenience function to get iterators for our for loops. """ #TODO: Could use regex.
+	""" Convenience function to get iterables for our for loops. """ #TODO: Could use regex.
 	bone_list = []
 	if(edit_bone):
 		bone_list = armature.data.edit_bones

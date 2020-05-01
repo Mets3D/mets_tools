@@ -45,7 +45,7 @@ from . import setup_action_constraints
 from . import armature_apply_scale
 from . import scale_control_to_bbone_handles
 from . import assign_bone_group
-from . import refresh_drivers
+# from . import refresh_drivers
 from . import weld_normals
 from . import toggle_weight_paint
 from . import change_brush
@@ -68,7 +68,7 @@ def register():
 	armature_apply_scale.register()
 	scale_control_to_bbone_handles.register()
 	assign_bone_group.register()
-	refresh_drivers.register()
+	# refresh_drivers.register()
 	weld_normals.register()
 	toggle_weight_paint.register()
 	change_brush.register()
@@ -91,7 +91,7 @@ def unregister():
 	armature_apply_scale.unregister()
 	scale_control_to_bbone_handles.unregister()
 	assign_bone_group.unregister()
-	refresh_drivers.unregister()
+	# refresh_drivers.unregister()
 	weld_normals.unregister()
 	toggle_weight_paint.unregister()
 	change_brush.unregister()
