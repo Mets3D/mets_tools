@@ -78,18 +78,21 @@ class ToggleWeightPaint(bpy.types.Operator):
 			context.view_layer.objects.active = obj
 			bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
 			if('last_switch_in' not in wpt or wpt['last_switch_in']==False):	# Only save shading info if we exitted weight paint mode using this operator.
-				context.screen['wpt']['light'] = context.space_data.shading.light
-				context.screen['wpt']['color_type'] = context.space_data.shading.color_type
-				context.screen['wpt']['studio_light'] = context.space_data.shading.studio_light
+				context.screen['wpt']['shading_type'] = context.space_data.shading.type
+				if context.space_data.shading.type=='SOLID':
+					context.screen['wpt']['light'] = context.space_data.shading.light
+					context.screen['wpt']['color_type'] = context.space_data.shading.color_type
+					context.screen['wpt']['studio_light'] = context.space_data.shading.studio_light
 				context.screen['wpt']['active_object'] = obj
 
 			context.screen['wpt']['last_switch_in'] = True	# Store whether the last time the operator ran, were we switching into or out of weight paint mode.
 			context.screen['wpt']['mode'] = mode
 			
 			# Set shading
-			context.space_data.shading.light = 'MATCAP'
-			context.space_data.shading.color_type = 'SINGLE'
-			context.space_data.shading.studio_light = 'basic_1.exr'
+			if context.space_data.shading.type=='SOLID':
+				context.space_data.shading.light = 'MATCAP'
+				context.space_data.shading.color_type = 'SINGLE'
+				context.space_data.shading.studio_light = 'basic_1.exr'
 
 		else:
 			### Leaving weight paint mode. ###
@@ -106,13 +109,11 @@ class ToggleWeightPaint(bpy.types.Operator):
 				context.screen['wpt']['last_switch_in'] = False
 
 				# Restore shading options.
-				context.space_data.shading.light = info['light']
-				context.space_data.shading.color_type = info['color_type']
-				try:
+				context.space_data.shading.type = info['shading_type']
+				if context.space_data.shading.type=='SOLID':
+					context.space_data.shading.light = info['light']
+					context.space_data.shading.color_type = info['color_type']
 					context.space_data.shading.studio_light = info['studio_light']
-				except:
-					# TODO: above line fails when exiting wp mode while in wireframe view.
-					pass
 
 				# If the armature was un-hidden, hide it again.
 				if(armature):
