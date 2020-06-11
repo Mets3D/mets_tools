@@ -33,67 +33,49 @@ import bpy
 from . import create_lightmap_uvs
 from . import make_physics_bones
 from . import cleanup_blend
+from . import join_as_shape_key_by_uvs
+# from . import join_as_shape_key_by_weights
 from . import make_modifiers_consistent
 from . import weighted_normals
 from . import convert_images
-from . import smart_weight_transfer
-from . import join_as_shape_key_by_uvs
-from . import force_apply_mirror
 from . import rename_skeleton_to_metsrig
 from . import mirror_constraints
 from . import setup_action_constraints
 from . import armature_apply_scale
 from . import scale_control_to_bbone_handles
 from . import assign_bone_group
-# from . import refresh_drivers
+from . import refresh_drivers
 from . import weld_normals
-from . import toggle_weight_paint
-from . import change_brush
-from . import weight_paint_context_menu
 from . import relink_character_rig
 
+# Each module is expected to have a register() and unregister() function.
+modules = [
+	create_lightmap_uvs,
+	make_physics_bones,
+	cleanup_blend,
+	join_as_shape_key_by_uvs,
+	# join_as_shape_key_by_weights,
+	make_modifiers_consistent,
+	weighted_normals,
+	convert_images,
+	rename_skeleton_to_metsrig,
+	mirror_constraints,
+	setup_action_constraints,
+	armature_apply_scale,
+	scale_control_to_bbone_handles,
+	assign_bone_group,
+	refresh_drivers,
+	weld_normals,
+	relink_character_rig,
+]
+
 def register():
-	from bpy.utils import register_class
-	make_physics_bones.register()
-	cleanup_blend.register()
-	make_modifiers_consistent.register()
-	weighted_normals.register()
-	convert_images.register()
-	smart_weight_transfer.register()
-	join_as_shape_key_by_uvs.register()
-	force_apply_mirror.register()
-	rename_skeleton_to_metsrig.register()
-	mirror_constraints.register()
-	setup_action_constraints.register()
-	armature_apply_scale.register()
-	scale_control_to_bbone_handles.register()
-	assign_bone_group.register()
-	# refresh_drivers.register()
-	weld_normals.register()
-	toggle_weight_paint.register()
-	change_brush.register()
-	weight_paint_context_menu.register()
-	relink_character_rig.register()
+	for m in modules:
+		try:
+			m.register()
+		except:
+			pass
 
 def unregister():
-	from bpy.utils import unregister_class
-	make_physics_bones.unregister()
-	cleanup_blend.unregister()
-	make_modifiers_consistent.unregister()
-	weighted_normals.unregister()
-	convert_images.unregister()
-	smart_weight_transfer.unregister()
-	join_as_shape_key_by_uvs.unregister()
-	force_apply_mirror.unregister()
-	rename_skeleton_to_metsrig.unregister()
-	mirror_constraints.unregister()
-	setup_action_constraints.unregister()
-	armature_apply_scale.unregister()
-	scale_control_to_bbone_handles.unregister()
-	assign_bone_group.unregister()
-	# refresh_drivers.unregister()
-	weld_normals.unregister()
-	toggle_weight_paint.unregister()
-	change_brush.unregister()
-	weight_paint_context_menu.unregister()
-	relink_character_rig.unregister()
+	for m in modules:
+		m.unregister()

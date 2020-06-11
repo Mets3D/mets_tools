@@ -1,13 +1,12 @@
 import bpy
-from bpy.props import *
+from bpy.props import BoolProperty
 
 def refresh_drivers(datablock):
 	if not datablock: return
 	if not hasattr(datablock, "animation_data"): return
 	if not datablock.animation_data: return
 	for d in datablock.animation_data.drivers:
-		if d.driver.type != 'SCRIPTED': continue
-		d.driver.expression = d.driver.expression
+		d.driver.type = d.driver.type
 
 class RefreshDrivers(bpy.types.Operator):
 	"""Refresh drivers, ensuring no valid drivers are marked as invalid"""
@@ -27,6 +26,11 @@ class RefreshDrivers(bpy.types.Operator):
 				refresh_drivers(o.data)
 			if o.type=='MESH':
 				refresh_drivers(o.data.shape_keys)
+			
+			for ms in o.material_slots:
+				if ms.material:
+					refresh_drivers(ms.material)
+					refresh_drivers(ms.material.node_tree)
 
 		return { 'FINISHED' }
 

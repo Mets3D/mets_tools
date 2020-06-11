@@ -3,34 +3,7 @@ There may be some extra stuff beside what's documented - assume that stuff is WI
 You can install this like any other Blender Addon - Download as zip, then in Blender go to Preferences->Addons->Install From File and browse the zip you downloaded.
 
 # Weight Painting Operators
-
-### Change Brush
-The addon will force-register keybinds for this operator to the 1, 2, 3 keys in Weight Paint mode:  
-1: Change to Add Brush.  
-2: Change to Subtract Brush.  
-3: Change to Blur Brush.  
-The brushes must have their default name, ie. "Add", "Subtract", "Blur".  
-
-### Toggle Weight Paint Mode
-This operator lets you switch into weight paint mode properly. 
-Select your object and run the operator.  
-It will find the first armature modifier of your mesh, if there is one. It will ensure the armature is visible and in pose mode.  
-It will set the shading settings to a pure white.  
-If you entered weight paint mode with this operator, you should also get used to leaving weight paint mode with it. When leaving weight paint mode with the operator, it will restore the visibility settings of the armature, and restore the previous shading settings.  
-I recommend setting up a keybind for this, eg.:  
-<img src="toggle_wp_shortcut.png" width="400" />  
-
-### Weight Paint Context Menu
-This is meant to replace the default Weight Paint Context menu.  
-<img src="custom_wp_context_menu.png" width="250" />  
-_(The "OK" button is not needed, I just can't avoid it)_  
-It lets you change the brush falloff type (Sphere/Projected) and the Front Faces Only option. These will affect ALL brushes.  
-Also, the color of your brushes will be darker when you're using Sphere falloff.  
-Since this is meant to replace something, you can overwrite the shortcut of the default weight paint context menu(which is pretty useless):  
-<img src="wp_context_menu_shortcut.png" width="500" />  
-
-### Toggle Weight Cleaner
-This is a new functionality found in the custom WP context menu. When enabled, **this will run the Clean Vertex Groups operator after every brush stroke** while you're in weight paint mode. This is useful when you're using Auto-Normalize(which you should be) because it has an issue where it adds weights to 0-weights, resulting in small weight islands showing up all over the mesh as you work. The weight cleaner lets you avoid this by removing 0-weights as soon as they appear.  
+These operators have been split to a separate addon: [Easy Weight](https://gitlab.com/blender/easy-weight)
 
 # Rigging Operators
 
@@ -81,9 +54,6 @@ Unhide All, Removes Doubles, Quadrangulate(Compare UVs), Weight Normals, Seams F
 Also removes UV Maps that don't actually contain a UV layout (every UV vertex in default position)
 
 # Misc Operators
-
-### Force Apply Mirror Modifier
-Force apply mirror modifier on the active mesh object by duplicating it, flipping it on the X axis, merging into the original. It will also flip vertex groups, shape keys, shape key masks, and even (attempt) shape key drivers, assuming everything is named with .L/.R suffixes.  
 
 ### Join As Shape Key By UVs
 For when you have two meshes with identical topology and UVs, and want to combine them so you can blend from one to the other with a shape key. Just select both and run the operator.  
