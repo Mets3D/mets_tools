@@ -1,6 +1,6 @@
 import bpy
 from . import utils
-from bpy.props import *
+from bpy.props import EnumProperty, IntProperty, FloatProperty, PointerProperty, BoolProperty, StringProperty
 
 class SetupActionConstraints(bpy.types.Operator):
 	""" Automatically manage action constraints of one action on all bones in an armature. """
@@ -39,9 +39,7 @@ class SetupActionConstraints(bpy.types.Operator):
 		default=-0.05)
 	trans_max: FloatProperty(name="Max",
 		default=0.05)
-	target: StringProperty(name="Target")
 	subtarget: StringProperty(name="String Property")
-	action: StringProperty(name="Action")
 
 	enabled: BoolProperty(name="Enabled", default=True)
 	delete: BoolProperty(name="Delete", default=False)
@@ -61,12 +59,8 @@ class SetupActionConstraints(bpy.types.Operator):
 	def execute(self, context):
 		# Options
 		armature = context.object
-		target = None
-		if(self.target!=""):
-			target = context.scene.objects[self.target]
-		else:
-			target = armature
-		action = bpy.data.actions[self.action]
+		action = armature.animation_data.action
+		assert action, "No action was selected."
 		constraint_name = "Action_" + action.name.replace("Rain_", "")
 		constraint_name_left = "Action_" + action.name.replace("Rain_", "") + ".L"	# TODO: Hard coded action naming convention.
 		constraint_name_right = "Action_" + action.name.replace("Rain_", "") + ".R"
@@ -113,6 +107,7 @@ class SetupActionConstraints(bpy.types.Operator):
 			for c in constraints:
 				
 				# TODO: Utils should have a way to detect and set a string to a specific side, rather than only flip. That way we wouldn't have to hard-code and only support .L/.R suffix.
+					# This is done in CloudRig, take the code from there.
 				# TODO: We should abstract constraints just like we did drivers in .definitions, and then let those abstract constraints mirror themselves. Then we can use that mirroring functionality from both here and X Mirror Constraints operator.
 
 				# If bone name indicates a side, force subtarget to that side, if subtarget is flippable.
@@ -133,7 +128,7 @@ class SetupActionConstraints(bpy.types.Operator):
 
 				c.target_space = self.target_space
 				c.transform_channel = self.transform_channel
-				c.target = target
+				c.target = armature
 				if self.subtarget != "":
 					c.subtarget = self.subtarget
 				c.action = action
@@ -176,20 +171,15 @@ class SetupActionConstraints(bpy.types.Operator):
 		# TODO: If no constraint is found, put the active bone as the target.
 		
 		wm = context.window_manager
-		self.target = context.object.name
 		
 		action = context.object.animation_data.action
-		assert action, "No active action on the active object. Select an Action in the Dope Sheet->Action Editor."
-		self.action = action.name
 
 		if(action and context.object.type=='ARMATURE'):
 			done = False
 			for b in context.object.pose.bones:
 				for c in b.constraints:
-					if(
-							(c.type == 'ACTION') 
-							and (c.action is not None)
-							and (c.action.name == self.action) ):
+					if(		(c.type == 'ACTION') 
+							and (c.action == action)):
 						self.subtarget = c.subtarget
 						self.frame_start = c.frame_start
 						self.frame_end = c.frame_end
@@ -218,9 +208,8 @@ class SetupActionConstraints(bpy.types.Operator):
 
 		if(not self.delete):
 			layout.prop(self, "enabled", text="Enabled")
-			layout.prop_search(self, "target", context.scene, "objects", text="Target")
 			layout.prop_search(self, "subtarget", context.object.data, "bones", text="Bone")
-		layout.prop_search(self, "action", bpy.data, "actions", text="Action")
+		layout.prop(context.object.animation_data, "action", text="Active Action")
 
 		if(not self.delete):
 			action_row = layout.row()
