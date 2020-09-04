@@ -46,6 +46,8 @@ class AssignBoneGroup(bpy.types.Operator):
 	color_active: FloatVectorProperty(name="Active", description="Color used for the active bone", subtype='COLOR', min=0, max=1)
 
 	def update_colors(self, context):
+		if self.color_preset == 'DEFAULT':
+			return
 		self.color_normal = presets[self.color_preset][0]
 		self.color_selected = presets[self.color_preset][1]
 		self.color_active = presets[self.color_preset][2]
@@ -76,28 +78,39 @@ class AssignBoneGroup(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return (context.object and context.object.type == 'ARMATURE' and context.object.mode=='POSE')
+		return context.object and context.object.type == 'ARMATURE' \
+			and context.object.mode=='POSE' and len(context.selected_pose_bones)>0
 
 	def draw(self, context):
+		rig = context.object
 		layout = self.layout
+		layout.use_property_split = True
+		layout.use_property_decorate = False
 
-		layout.prop(self, "operation", expand=True)
+		layout.row().prop(self, "operation", expand=True)
 
-		if self.operation == 'REMOVE': return
+		if self.operation == 'REMOVE': 
+			layout.label(text="Selected bones will be unassigned.")
+			return
 
 		layout.separator()
 
 		if self.operation == 'ASSIGN':
-			layout.prop_search(self, "bone_group", context.object.pose, "bone_groups", text="Bone Group")
+			if len(rig.pose.bone_groups)==0:
+				row = layout.row()
+				row.alert = True
+				row.label(text="No existing bone groups.")
+				return
+			layout.prop_search(self, "bone_group", rig.pose, "bone_groups", text="Bone Group")
 		elif self.operation == 'NEW':
 			layout.prop(self, "bone_group", text="Name")
 
 		# Draw color options of the chosen group
 		if self.operation == 'ASSIGN' and self.bone_group != "":
-			group = context.object.pose.bone_groups.get(self.bone_group)
-			
+			group = rig.pose.bone_groups.get(self.bone_group)
+
 			split = layout.split()
-			split.active = (context.object.proxy is None)
+			split.active = (rig.proxy is None)
 
 			col = split.column()
 			col.prop(group, "color_set")
