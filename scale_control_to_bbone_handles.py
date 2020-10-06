@@ -82,7 +82,7 @@ class Setup_BBone_Scale_Controls(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object.mode == 'POSE'
+		return context.object and context.object.mode == 'POSE'
 
 	def execute(self, context):
 		for pb in context.selected_pose_bones:

@@ -54,7 +54,7 @@ class SetupActionConstraints(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object.type == 'ARMATURE' and context.object.mode in ['POSE', 'OBJECT']
+		return context.object and context.object.type == 'ARMATURE' and context.object.mode in ['POSE', 'OBJECT']
 	
 	def execute(self, context):
 		# Options

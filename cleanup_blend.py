@@ -74,7 +74,7 @@ class DeleteUnusedVGroups(bpy.types.Operator):
 	
 	@classmethod
 	def poll(cls, context):
-		return len(context.object.vertex_groups) > 0
+		return context.object and context.object.type=='MESH' and len(context.object.vertex_groups) > 0
 	
 	def draw_delete_unused(self, context):
 		operator = self.layout.operator(DeleteUnusedVGroups.bl_idname, text="Delete Unused Groups", icon='X')

@@ -433,7 +433,7 @@ class XMirrorConstraints(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object.mode=='POSE'
+		return context.object and context.object.mode=='POSE'
 
 	def execute(self, context):
 		# TODO: We should fail with error on any bone that we don't find an opposite for, or any bone with unflippable name.
