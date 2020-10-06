@@ -28,7 +28,7 @@ bl_info = {
 	"description": "Random collection of tools I built for myself",
 	"category": "3D View"}
 	
-import bpy
+import bpy, importlib
 
 from . import create_lightmap_uvs
 from . import make_physics_bones
@@ -71,6 +71,7 @@ modules = [
 
 def register():
 	for m in modules:
+		importlib.reload(m)
 		try:
 			m.register()
 		except:
