@@ -24,9 +24,12 @@ bl_info = {
 	"author": "Mets3D",
 	"version": (2,3),
 	"blender": (2, 81, 0),
-	"location": "View3D > Search ",
+	"location": "View3D > Search",
 	"description": "Random collection of tools I built for myself",
-	"category": "3D View"}
+	"category": "Rigging",
+	"doc_url": "https://github.com/Mets3D/mets_tools/blob/master/docs/README.md",
+	"tracker_url": "https://github.com/Mets3D/mets_tools/issues/new",
+}
 	
 import bpy, importlib
 
