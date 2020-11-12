@@ -157,6 +157,30 @@ class DeleteUnusedVGroups(bpy.types.Operator):
 		bpy.context.view_layer.objects.active = org_active
 		return {'FINISHED'}
 
+class DeleteUnselectedVGroups(bpy.types.Operator):
+	"""Delete vertex groups of all unselected bones"""
+	bl_idname = "object.delete_unselected_vgroups"
+	bl_label = "Delete Unselected Vertex Groups"
+	bl_options = {'REGISTER', 'UNDO'}
+
+	@classmethod
+	def poll(cls, context):
+		ob = context.weight_paint_object
+		rig = context.pose_object
+		return ob and rig and len(ob.vertex_groups) > 0
+
+	def execute(self, context):
+		ob = context.weight_paint_object
+		rig = context.pose_object
+
+		for vg in ob.vertex_groups:
+			if vg.name in rig.pose.bones:
+				b = rig.pose.bones.get(vg.name)
+				if not b.bone.select:
+					ob.vertex_groups.remove(vg)
+		
+		return {'FINISHED'}
+
 def get_linked_nodes(nodes, node):	# Recursive function to collect all nodes connected BEFORE the second parameter.
 	nodes.append(node)
 	for i in node.inputs:
@@ -547,20 +571,23 @@ class CleanUpMeshes(bpy.types.Operator):
 		wm = context.window_manager
 		return wm.invoke_props_dialog(self)
 
+classes = [
+	DeleteUnusedMaterialSlots
+	,DeleteUnusedVGroups
+	,DeleteUnselectedVGroups
+	,CleanUpMaterials
+	,CleanUpObjects
+	,CleanUpMeshes
+]
+
 def register():
 	from bpy.utils import register_class
+	for c in classes:
+		register_class(c)
 	bpy.types.MESH_MT_vertex_group_context_menu.prepend(DeleteUnusedVGroups.draw_delete_unused)
-	register_class(DeleteUnusedMaterialSlots)
-	register_class(DeleteUnusedVGroups)
-	register_class(CleanUpMaterials)
-	register_class(CleanUpObjects)
-	register_class(CleanUpMeshes)
 
 def unregister():
 	bpy.types.TOPBAR_MT_file_import.remove(DeleteUnusedVGroups.draw_delete_unused)
 	from bpy.utils import unregister_class
-	unregister_class(DeleteUnusedMaterialSlots)
-	unregister_class(DeleteUnusedVGroups)
-	unregister_class(CleanUpMaterials)
-	unregister_class(CleanUpObjects)
-	unregister_class(CleanUpMeshes)
+	for c in reversed(classes):
+		unregister_class(c)
