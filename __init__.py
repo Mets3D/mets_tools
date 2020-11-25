@@ -50,6 +50,7 @@ from . import assign_bone_group
 from . import refresh_drivers
 from . import weld_normals
 from . import relink_character_rig
+from . import resync_all_collections
 
 # Each module is expected to have a register() and unregister() function.
 modules = [
@@ -70,6 +71,7 @@ modules = [
 	refresh_drivers,
 	weld_normals,
 	relink_character_rig,
+	resync_all_collections,
 ]
 
 def register():
