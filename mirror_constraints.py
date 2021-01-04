@@ -20,10 +20,14 @@ def mirror_drivers(armature, from_bone, to_bone, from_constraint=None, to_constr
 		### Copying mirrored driver to target bone...
 		
 		# The way drivers on bones work is weird af. You have to create the driver relative to the bone, but you have to read the driver relative to the armature. So d.data_path might look like "pose.bones["bone_name"].bone_property" but when we create a driver we just need the "bone_property" part.
-		data_path_from_bone = d.data_path.split("].", 1)[1]
+		data_path_from_bone = d.data_path.split("]", 1)[1]
+		if data_path_from_bone.startswith("."):
+			data_path_from_bone = data_path_from_bone[1:]
 		new_d = None
 		if("constraints[" in data_path_from_bone):
-			data_path_from_constraint = data_path_from_bone.split("].", 1)[1]
+			data_path_from_constraint = data_path_from_bone.split("]", 1)[1]
+			if data_path_from_constraint.startswith("."):
+				data_path_from_constraint = data_path_from_constraint[1:]
 			# Armature constraints need special special treatment...
 			if(from_constraint.type=='ARMATURE' and "targets[" in data_path_from_constraint):
 				target_idx = int(data_path_from_constraint.split("targets[")[1][0])
@@ -169,8 +173,9 @@ def mirror_constraint(armature, bone, constraint, allow_split=True):
 	elif(c.type=='ARMATURE'):
 		for t in c.targets:
 			opp_t = opp_c.targets.new()
-			flipped_target = bpy.data.objects.get( utils.flip_name(t.target.name) )
-			opp_t.target = flipped_target
+			if t.target:
+				flipped_target = bpy.data.objects.get( utils.flip_name(t.target.name) )
+				opp_t.target = flipped_target
 			flipped_subtarget = utils.flip_name(t.subtarget)
 			opp_t.subtarget = flipped_subtarget
 			opp_t.weight = t.weight

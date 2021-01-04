@@ -428,7 +428,8 @@ class CleanUpObjects(bpy.types.Operator):
 			obj.show_all_edges = True
 
 			# Sorting vertex groups by hierarchy
-			bpy.ops.object.vertex_group_sort(sort_type='BONE_HIERARCHY')
+			if len(obj.vertex_groups)>1 and obj.visible_get():
+				bpy.ops.object.vertex_group_sort(sort_type='BONE_HIERARCHY')
 
 			# Renaming UV map if there is only one
 			if(self.opt_rename_uvs):
