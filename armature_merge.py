@@ -111,7 +111,7 @@ class MergeArmatures(bpy.types.Operator):
 				bg = pb.bone_group
 				if bg:
 					if bg.name not in bone_groups:
-						bone_groups[bg.name] = []
+						bone_groups[bg.name] = [pb.name]
 					else:
 						bone_groups[bg.name].append(pb.name)
 			
