@@ -51,6 +51,7 @@ from . import refresh_drivers
 from . import weld_normals
 from . import relink_character_rig
 from . import resync_all_collections
+from . import armature_merge
 
 # Each module is expected to have a register() and unregister() function.
 modules = [
@@ -72,6 +73,7 @@ modules = [
 	weld_normals,
 	relink_character_rig,
 	resync_all_collections,
+	armature_merge
 ]
 
 def register():
