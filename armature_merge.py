@@ -16,6 +16,7 @@ import time
 	# Assign bone groups to bones based on the mapping.
 
 class Timer:
+	"""Quick timer class to help debug performance."""
 	def __init__(self):
 		self.start = time.time()
 		self.last = self.start
@@ -34,16 +35,20 @@ class MergeArmatures(bpy.types.Operator):
 
 	def execute(self, context):
 		timer = Timer()
-
-		# Find an Outliner. Needed for the Remap Users operator, for some reason.
-		outliner = None
-		for area in context.screen.areas:
-			if area.type=='OUTLINER':
-				outliner = area
-		if not outliner:
-			self.report({'ERROR'}, "You must have an Outliner open somewhere, don't ask why!")
-			return {'CANCELLED'}
 		
+		### Remap Users
+		# Find an Outliner. Needed for the Remap Users operator, for some reason.
+		# outliner = None
+		# for area in context.screen.areas:
+		# 	if area.type=='OUTLINER':
+		# 		outliner = area
+		# if not outliner:
+		# 	self.report({'ERROR'}, "You must have an Outliner open somewhere, don't ask why!")
+		# 	return {'CANCELLED'}
+		
+		# This segfaults. Doing it from the interface doesn't work either (pop-up window doesn't appear...)
+		# bpy.ops.outliner.id_remap({'area' : outliner}, id_type='OBJECT', old_id=armature.name, new_id=target_armature.name)
+
 		target_armature = context.object
 		if target_armature.type != 'ARMATURE':
 			self.report({'ERROR'}, "Active object must be an armature!")
@@ -58,8 +63,6 @@ class MergeArmatures(bpy.types.Operator):
 		if len(source_armatures) < 1:
 			self.report({'ERROR'}), "Select more than one armature!"
 			return {'CANCELLED'}
-
-		timer.tick("prep")
 
 		for armature in source_armatures[:]:
 			print("Merging " + armature.name + " into " + target_armature.name)
@@ -131,11 +134,7 @@ class MergeArmatures(bpy.types.Operator):
 
 			# Merge this armature into the target armature.
 			bpy.ops.object.join({'selected_editable_objects' : [armature, target_armature], 'object' : target_armature})
-			timer.tick("Join")
-
-			# Remap Users
-			# This would be wonderful, but it segfaults. Doing it from the interface doesn't work either (pop-up window doesn't appear...)
-			# bpy.ops.outliner.id_remap({'area' : outliner}, id_type='OBJECT', old_id=armature.name, new_id=target_armature.name)
+			timer.tick("Join")	# The Join operator itself is taking FOR EVER!!
 
 			# Restore modifier targets
 			for m in modifiers:
