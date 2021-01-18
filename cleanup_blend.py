@@ -2,6 +2,7 @@ import bmesh
 import bpy
 from bpy.props import *
 from . import utils
+from .utils import EnsureVisible
 from math import pi
 
 # TODO testing:
@@ -37,10 +38,10 @@ class DeleteUnusedMaterialSlots(bpy.types.Operator):
 				obj.type!='MESH' or
 				len(obj.data.polygons)==0): continue
 
-			utils.EnsureVisible.ensure(context, obj)
+			visible = EnsureVisible(obj)
 			bpy.context.view_layer.objects.active = obj
 			bpy.ops.object.material_slot_remove_unused()
-			utils.EnsureVisible.restore(obj)
+			visible.restore()
 
 		bpy.context.view_layer.objects.active = org_active
 
@@ -93,8 +94,8 @@ class DeleteUnusedVGroups(bpy.types.Operator):
 			if obj.type != 'MESH': continue
 			if(len(obj.vertex_groups) == 0): continue
 			
-			utils.EnsureVisible.restore(obj)
-			utils.EnsureVisible.ensure(context, obj)
+			visible = EnsureVisible(obj)
+			visible.restore()
 			bpy.context.view_layer.objects.active = obj
 
 			# Clean 0 weights
@@ -402,7 +403,7 @@ class CleanUpObjects(bpy.types.Operator):
 			(obj.type != 'MESH' and 
 			obj.type != 'ARMATURE') ): continue
 
-			utils.EnsureVisible.ensure(context, obj)
+			visible = EnsureVisible(obj)
 			bpy.context.view_layer.objects.active = obj
 			
 			# Naming mesh/skeleton data blocks
@@ -448,7 +449,7 @@ class CleanUpObjects(bpy.types.Operator):
 								obj.vertex_groups.new(name=flippedName)
 						break
 		
-			utils.EnsureVisible.restore(obj)
+			visible.restore()
 
 		bpy.context.view_layer.objects.active = org_active
 		
@@ -497,7 +498,7 @@ class CleanUpMeshes(bpy.types.Operator):
 			obj.select_set(True)
 
 			
-			utils.EnsureVisible.ensure(context, obj)
+			visible = EnsureVisible(obj)
 			bpy.context.view_layer.objects.active = obj
 			bpy.ops.object.mode_set(mode='EDIT')
 			
@@ -561,8 +562,8 @@ class CleanUpMeshes(bpy.types.Operator):
 			bpy.ops.object.mode_set(mode='OBJECT')
 			for o in org_selected:
 				o.select_set(True)
-				
-			utils.EnsureVisible.restore(obj)
+			
+			visible.restore()
 			bpy.context.view_layer.objects.active = org_active
 			bpy.ops.object.mode_set(mode=org_mode)
 
