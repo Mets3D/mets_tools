@@ -122,6 +122,7 @@ def mirror_constraint(armature, bone, constraint, allow_split=True):
 		opp_c.subtarget = utils.flip_name(c.subtarget)
 	
 	# Need to mirror the curves in the action to the opposite bone.
+	# TODO: Something's wrong when the control bone's X translation axis is the global up/down axis.
 	if(c.type=='ACTION' and b != opp_b):
 		action = c.action
 		# Flip min/max in some cases.
@@ -160,15 +161,11 @@ def mirror_constraint(armature, bone, constraint, allow_split=True):
 
 	elif(c.type=='DAMPED_TRACK'):
 		axis_mapping = {
-			# 'TRACK_NEGATIVE_X' : 'TRACK_X',
-			# 'TRACK_X' : 'TRACK_NEGATIVE_X',
-			# 'TRACK_NEGATIVE_Z' : 'TRACK_Z',
-			# 'TRACK_Z' : 'TRACK_NEGATIVE_Z'
+			'TRACK_NEGATIVE_X' : 'TRACK_X',
+			'TRACK_X' : 'TRACK_NEGATIVE_X',
 		}
 		if opp_c.track_axis in axis_mapping.keys():
 			opp_c.track_axis = axis_mapping[c.track_axis]
-		# TODO: Figure this out. Having a simple dict is not enough, bone roll matters.
-		# TODO: Test other tracking constraints: Locked Track, Track To.
 
 	elif(c.type=='ARMATURE'):
 		for t in c.targets:
