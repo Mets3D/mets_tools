@@ -18,20 +18,39 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 				return True
 
 		pb = context.active_pose_bone
-		if context.mode=='POSE' and pb:
-			return pb.custom_shape
+		return context.mode=='POSE' and pb
 
 	def execute(self, context):
 		global widget_visible
 
 		if context.mode=='POSE':
+			rig = context.object
 			pb = context.active_pose_bone
 			shape = pb.custom_shape
-			if widget_visible:
-				widget_visible.restore()
-			widget_visible = EnsureVisible(shape)
+			if not shape:
+				name = "WGT-"+pb.name
+				mesh = bpy.data.meshes.new(name)
+				obj = bpy.data.objects.new(name, mesh)
+				context.scene.collection.objects.link(obj)
+				shape = pb.custom_shape = obj
+
+				bpy.ops.object.mode_set(mode='OBJECT')
+				context.view_layer.objects.active = obj
+				bpy.ops.object.mode_set(mode='EDIT')
+				bpy.ops.mesh.primitive_cube_add(location=(0,0,0), rotation=(0,0,0), scale=(0.5,0.5,0.5))
+				bpy.ops.object.mode_set(mode='OBJECT')
+				context.view_layer.objects.active = rig
+				bpy.ops.object.mode_set(mode='POSE')
+			else:
+				if widget_visible:
+					try:
+						widget_visible.restore()
+					except:
+						widget_visible = None
+				widget_visible = EnsureVisible(shape)
+
 			bpy.ops.object.mode_set(mode='OBJECT')
-			context.scene.widget_edit_armature = context.object.name
+			context.scene.widget_edit_armature = rig.name
 			context.view_layer.objects.active = shape
 			shape.matrix_world = pb.matrix
 			if pb.use_custom_shape_bone_size:
@@ -52,7 +71,6 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-
 class POSE_OT_make_widget_unique(bpy.types.Operator):
 	"""Re-assign this bone's shape to a unique duplicate, so it can be edited without affecting other bones using the same widget."""
 
@@ -65,21 +83,20 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
 	@classmethod
 	def poll(cls, context):
 		pb = context.active_pose_bone
-		if context.mode=='POSE' and pb:
-			return pb.custom_shape
+		return context.mode=='POSE' and pb and pb.custom_shape
 
 	def invoke(self, context, event):
 		pb = context.active_pose_bone
 		shape = pb.custom_shape
-		self.new_name = shape.name
+		if shape:
+			self.new_name = shape.name
+		else:
+			self.new_name = "WGT-"+pb.name
 		
 		wm = context.window_manager
 		return wm.invoke_props_dialog(self)
 
 	def draw(self, context):
-		pb = context.active_pose_bone
-		shape = pb.custom_shape
-
 		layout = self.layout
 		layout.use_property_split = True
 		layout.use_property_decorate = False
@@ -89,10 +106,16 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
 	def execute(self, context):
 		pb = context.active_pose_bone
 		shape = pb.custom_shape
+		rig = context.object
 
-		duplicate_mesh = bpy.data.meshes.new_from_object(shape)
-		duplicate_obj = bpy.data.objects.new(self.new_name, duplicate_mesh)
-		pb.custom_shape = duplicate_obj
+		mesh = bpy.data.meshes.new_from_object(shape)
+		mesh.name = self.new_name
+		obj = bpy.data.objects.new(self.new_name, mesh)
+		context.scene.collection.objects.link(obj)
+
+		pb.custom_shape = obj
+
+		bpy.ops.pose.toggle_edit_widget()
 
 		return {'FINISHED'}
 
