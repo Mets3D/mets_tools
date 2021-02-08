@@ -39,8 +39,11 @@ def mirror_drivers(armature, from_bone, to_bone, from_constraint=None, to_constr
 				to_constraint.driver_remove(data_path_from_constraint)
 				new_d = to_constraint.driver_add(data_path_from_constraint)
 		else:
-			to_bone.driver_remove(data_path_from_bone)
-			new_d = to_bone.driver_add(data_path_from_bone)
+			to_bone.driver_remove(data_path_from_bone, d.array_index)
+			try:
+				new_d = to_bone.driver_add(data_path_from_bone, d.array_index)
+			except:
+				new_d = to_bone.driver_add(data_path_from_bone)
 			
 		expression = d.driver.expression
 		
