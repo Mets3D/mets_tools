@@ -52,7 +52,11 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 			bpy.ops.object.mode_set(mode='OBJECT')
 			context.scene.widget_edit_armature = rig.name
 			context.view_layer.objects.active = shape
-			shape.matrix_world = pb.matrix
+			transform_bone = pb
+			if pb.custom_shape_transform:
+				transform_bone = pb.custom_shape_transform
+
+			shape.matrix_world = transform_bone.matrix
 			if pb.use_custom_shape_bone_size:
 				shape.scale = [pb.length*pb.custom_shape_scale]*3
 			else:
