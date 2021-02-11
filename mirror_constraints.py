@@ -120,9 +120,11 @@ def mirror_constraint(armature, bone, constraint, allow_split=True):
 	if(split):
 		c.influence /= 2
 		opp_c.influence /= 2
-	
+
 	if(hasattr(opp_c, 'subtarget')):	# Flip sub-target (bone)
 		opp_c.subtarget = utils.flip_name(c.subtarget)
+	if(hasattr(opp_c, 'space_subtarget')):	# Flip custom space sub-target (bone)
+		opp_c.space_subtarget = utils.flip_name(c.space_subtarget)
 	
 	# Need to mirror the curves in the action to the opposite bone.
 	# TODO: Something's wrong when the control bone's X translation axis is the global up/down axis.
