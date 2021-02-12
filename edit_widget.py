@@ -31,7 +31,11 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 				name = "WGT-"+pb.name
 				mesh = bpy.data.meshes.new(name)
 				obj = bpy.data.objects.new(name, mesh)
-				context.scene.collection.objects.link(obj)
+				# CloudRig integration! if we're on a metarig, use the widget collection.
+				collection = context.scene.collection
+				if hasattr(rig.data, 'cloudrig_parameters') and rig.data.cloudrig_parameters.widget_collection:
+					collection = rig.data.cloudrig_parameters.widget_collection
+				collection.objects.link(obj)
 				shape = pb.custom_shape = obj
 
 				bpy.ops.object.mode_set(mode='OBJECT')
@@ -90,12 +94,7 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
 		return context.mode=='POSE' and pb and pb.custom_shape
 
 	def invoke(self, context, event):
-		pb = context.active_pose_bone
-		shape = pb.custom_shape
-		if shape:
-			self.new_name = shape.name
-		else:
-			self.new_name = "WGT-"+pb.name
+		self.new_name = "WGT-"+pb.name
 		
 		wm = context.window_manager
 		return wm.invoke_props_dialog(self)
@@ -115,7 +114,8 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
 		mesh = bpy.data.meshes.new_from_object(shape)
 		mesh.name = self.new_name
 		obj = bpy.data.objects.new(self.new_name, mesh)
-		context.scene.collection.objects.link(obj)
+		for c in shape.users_collection:
+			c.objects.link(obj)
 
 		pb.custom_shape = obj
 
