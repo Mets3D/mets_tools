@@ -30,18 +30,18 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 			if not shape:
 				name = "WGT-"+pb.name
 				mesh = bpy.data.meshes.new(name)
-				obj = bpy.data.objects.new(name, mesh)
+				shape = bpy.data.objects.new(name, mesh)
 				# CloudRig integration! if we're on a metarig, use the widget collection.
 				collection = context.scene.collection
 				if hasattr(rig.data, 'cloudrig_parameters') and rig.data.cloudrig_parameters.widget_collection:
 					collection = rig.data.cloudrig_parameters.widget_collection
-				collection.objects.link(obj)
-				if not obj.visible_get():
-					context.scene.collection.objects.link(obj)
-				shape = pb.custom_shape = obj
+				collection.objects.link(shape)
+				if not shape.visible_get():
+					widget_visible = EnsureVisible(shape)
+				pb.custom_shape = shape
 
 				bpy.ops.object.mode_set(mode='OBJECT')
-				context.view_layer.objects.active = obj
+				context.view_layer.objects.active = shape
 				bpy.ops.object.mode_set(mode='EDIT')
 				bpy.ops.mesh.primitive_cube_add(location=(0,0,0), rotation=(0,0,0), scale=(0.5,0.5,0.5))
 				bpy.ops.object.mode_set(mode='OBJECT')
