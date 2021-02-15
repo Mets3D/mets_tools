@@ -36,6 +36,8 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 				if hasattr(rig.data, 'cloudrig_parameters') and rig.data.cloudrig_parameters.widget_collection:
 					collection = rig.data.cloudrig_parameters.widget_collection
 				collection.objects.link(obj)
+				if not obj.visible_get():
+					context.scene.collection.objects.link(obj)
 				shape = pb.custom_shape = obj
 
 				bpy.ops.object.mode_set(mode='OBJECT')
