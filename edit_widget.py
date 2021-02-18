@@ -96,6 +96,7 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
 		return context.mode=='POSE' and pb and pb.custom_shape
 
 	def invoke(self, context, event):
+		pb = context.active_pose_bone
 		self.new_name = "WGT-"+pb.name
 		
 		wm = context.window_manager
