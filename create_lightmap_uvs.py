@@ -45,7 +45,7 @@ class CreateLightMapUVs(bpy.types.Operator):
 					UVLayer.active = True
 					bpy.ops.mesh.uv_texture_remove()
 
-			if(len(o.data.uv_layers) is 1):
+			if(len(o.data.uv_layers) == 1):
 				bpy.ops.object.mode_set(mode='EDIT')
 				bpy.ops.mesh.uv_texture_add()
 				o.data.uv_layers[-1].name = "UV_LightMap"
