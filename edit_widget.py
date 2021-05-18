@@ -30,7 +30,6 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		ask_for_name = True
 		for pb in context.selected_pose_bones:
 			if pb.custom_shape:
-				print("This fucking bone has a shape, man")
 				ask_for_name = False
 				break
 		if ask_for_name:

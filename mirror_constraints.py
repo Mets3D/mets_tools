@@ -44,7 +44,8 @@ def mirror_drivers(armature, from_bone, to_bone, from_constraint=None, to_constr
 				new_d = to_bone.driver_add(data_path_from_bone, d.array_index)
 			except:
 				new_d = to_bone.driver_add(data_path_from_bone)
-			
+				# TODO: This can error sometimes, not sure why yet.
+
 		expression = d.driver.expression
 		
 		# Copy the variables
