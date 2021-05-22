@@ -513,7 +513,7 @@ class XMirrorConstraints(bpy.types.Operator):
 				if(opp_shape):
 					opp_b.custom_shape = opp_shape
 				opp_data_b.show_wire = data_b.show_wire
-				opp_b.custom_shape_scale = b.custom_shape_scale
+				opp_b.custom_shape_scale_xyz = b.custom_shape_scale_xyz
 				opp_b.use_custom_shape_bone_size = b.use_custom_shape_bone_size
 				if(b.custom_shape_transform):
 					opp_b.custom_shape_transform = armature.pose.bones.get(utils.flip_name(b.custom_shape_transform.name))

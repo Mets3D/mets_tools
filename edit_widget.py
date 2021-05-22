@@ -115,9 +115,9 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 
 				shape.matrix_world = transform_bone.matrix
 				if pb.use_custom_shape_bone_size:
-					shape.scale = [pb.length*pb.custom_shape_scale]*3
+					shape.scale = pb.length*pb.custom_shape_scale_xyz
 				else:
-					shape.scale = [pb.custom_shape_scale]*3
+					shape.scale = pb.custom_shape_scale_xyz
 			bpy.ops.object.mode_set(mode='EDIT')
 		
 		elif context.mode=='EDIT_MESH':

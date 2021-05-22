@@ -36,10 +36,10 @@ class ApplyArmatureScale(bpy.types.Operator):
 		for b in o.pose.bones:
 			# Adjust bone properties
 			if(not b.use_custom_shape_bone_size):
-				b.custom_shape_scale *= scale
+				b.custom_shape_scale_xyz *= scale
 				if(self.do_round):
-					b.custom_shape_scale = round(b.custom_shape_scale, 2)
-			
+					b.custom_shape_scale_xyz = [round(b.custom_shape_scale_xyz[i], 2) for i in range(3)]
+
 			# Adjust constraints
 			for c in b.constraints:
 				if(c.type in ['LIMIT_LOCATION', 'LIMIT_SCALE']):
