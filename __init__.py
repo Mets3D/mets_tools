@@ -45,7 +45,6 @@ from . import rename_skeleton_to_metsrig
 from . import mirror_constraints
 from . import setup_action_constraints
 from . import armature_apply_scale
-from . import scale_control_to_bbone_handles
 from . import assign_bone_group
 from . import refresh_drivers
 from . import weld_normals
@@ -69,7 +68,6 @@ modules = [
 	mirror_constraints,
 	setup_action_constraints,
 	armature_apply_scale,
-	scale_control_to_bbone_handles,
 	assign_bone_group,
 	refresh_drivers,
 	weld_normals,
