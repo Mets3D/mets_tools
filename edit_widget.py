@@ -1,6 +1,9 @@
 import bpy
+from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty
+
 from .utils import EnsureVisible
+
 
 widgets_visible = []
 
@@ -113,11 +116,26 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 				if pb.custom_shape_transform:
 					transform_bone = pb.custom_shape_transform
 
-				shape.matrix_world = transform_bone.matrix
+				# Then we figure out the world matrix for the object which will make it match
+				# the pose bone.
+
+				# First: We need to account for additional scaling from the 
+				# use_custom_shape_bone_size flag, which scales the shape by the bone length.
+				scale = pb.custom_shape_scale_xyz.copy()
 				if pb.use_custom_shape_bone_size:
-					shape.scale = pb.length*pb.custom_shape_scale_xyz
-				else:
-					shape.scale = pb.custom_shape_scale_xyz
+					scale *= pb.bone.length
+
+				# Second: We create a matrix from the custom shape translation, rotation
+				# and this scale which already accounts for bone length.
+				custom_shape_matrix = Matrix.LocRotScale(pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale)
+
+				# Then we multiply the pose bone's world matrix by the custom shape matrix
+				final_matrix = transform_bone.matrix @ custom_shape_matrix
+
+				# Applying this matrix to the object should make it match perfectly
+				# with the visual location, rotation and scale of the pose bone.
+				shape.matrix_world = final_matrix
+
 			bpy.ops.object.mode_set(mode='EDIT')
 		
 		elif context.mode=='EDIT_MESH':
