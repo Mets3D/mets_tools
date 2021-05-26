@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import *
+from bpy.props import StringProperty, EnumProperty, FloatVectorProperty
 
 # This operator is a replacement for the (useless) built-in Ctrl+G bone group menu in pose mode.
 # It lets you assign the selected bones to an existing bone group, or create a new one, or unassign from all.
@@ -30,7 +30,8 @@ class AssignBoneGroup(bpy.types.Operator):
 	bl_label = "Assign Selected Bones to Bone Group"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	bone_group: StringProperty(name="Bone Group", default="Group")
+	new_group: StringProperty(name="Bone Group", default="Group")
+	existing_group: StringProperty(name="Bone Group", default="Group")	# Important that this always gets initialized to a valid bone group, unless there aren't any.
 	operation: EnumProperty(
 		name="Operation", 
 		items=(
@@ -55,7 +56,7 @@ class AssignBoneGroup(bpy.types.Operator):
 	color_preset: EnumProperty(
 		name="Color Preset",
 		items=(
-			('DEFAULT', "Default Colors", ""),
+			('DEFAULT', "No Colors", ""),
 			('PRESET01', "01 - Red", ""),
 			('PRESET02', "02 - Orange", ""),
 			('PRESET03', "03 - Green", ""),
@@ -78,8 +79,20 @@ class AssignBoneGroup(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object and context.object.type == 'ARMATURE' \
-			and context.object.mode=='POSE' and len(context.selected_pose_bones)>0
+		pbs = context.selected_pose_bones
+		pb = context.active_pose_bone
+		obj = context.object
+		return obj \
+			and obj.type == 'ARMATURE' \
+			and not obj.proxy \
+			and obj.mode == 'POSE' \
+			and len(pbs) > 0 \
+			and pb \
+			and pb in pbs
+
+	def draw_in_menu(self, context):
+		layout = self.layout
+		layout.operator(AssignBoneGroup.bl_idname, text="Assign Selected Bones")
 
 	def draw(self, context):
 		rig = context.object
@@ -101,69 +114,72 @@ class AssignBoneGroup(bpy.types.Operator):
 				row.alert = True
 				row.label(text="No existing bone groups.")
 				return
-			layout.prop_search(self, "bone_group", rig.pose, "bone_groups", text="Bone Group")
+			layout.prop_search(self, "existing_group", rig.pose, "bone_groups", text="Bone Group")
+
+			# Draw color options of the chosen group
+			assert self.existing_group != "", "This should've been set in invoke."
+			group = rig.pose.bone_groups.get(self.existing_group)
+			assert group, "How did you manage to select a group which doesn't exist!?"
+
+			layout.row().prop(group, "color_set")
+			split = layout.split(factor=0.4)
+			split.row()
+			row = split.row(align=True)
+			if group.color_set != 'DEFAULT':
+				row.enabled = group.is_custom_color_set
+				row.prop(group.colors, "normal", text="")
+				row.prop(group.colors, "select", text="")
+				row.prop(group.colors, "active", text="")
+
 		elif self.operation == 'NEW':
-			layout.prop(self, "bone_group", text="Name")
+			layout.prop(self, "new_group", text="Name")
 
-		# Draw color options of the chosen group
-		if self.operation == 'ASSIGN' and self.bone_group != "":
-			group = rig.pose.bone_groups.get(self.bone_group)
 
-			split = layout.split()
-			split.active = (rig.proxy is None)
-
-			col = split.column()
-			col.prop(group, "color_set")
-			if group.color_set:
-				col = split.column()
-				sub = col.row(align=True)
-				sub.enabled = group.is_custom_color_set  # only custom colors are editable
-				sub.prop(group.colors, "normal", text="")
-				sub.prop(group.colors, "select", text="")
-				sub.prop(group.colors, "active", text="")
-		
-		# Draw color options for creating a new group
-		if self.operation == 'NEW':
-			split = layout.split()
-			split.active = (context.object.proxy is None)
-
-			col = split.column()
-			col.prop(self, "color_preset")
-
-			col = split.column()
-			sub = col.row(align=True)
-			if self.color_preset!='DEFAULT':
-				#sub.enabled = group.is_custom_color_set  # only custom colors are editable
-				sub.prop(self, "color_normal", text="")
-				sub.prop(self, "color_selected", text="")
-				sub.prop(self, "color_active", text="")
+			layout.row().prop(self, "color_preset")
+			split = layout.split(factor=0.4)
+			split.row()
+			row = split.row(align=True)
+			if self.color_preset != 'DEFAULT':
+				row.prop(self, "color_normal", text="")
+				row.prop(self, "color_selected", text="")
+				row.prop(self, "color_active", text="")
 	
 	def invoke(self, context, event):
-		if context.active_pose_bone and context.active_pose_bone.bone_group:
-			self.bone_group = context.active_pose_bone.bone_group.name
-		
-		if len(context.object.pose.bone_groups) == 0:
+		"""Pre-fill useful initial parameters."""
+		groups = context.object.pose.bone_groups
+		if len(groups) > 0:
+			self.existing_group = groups[0].name
+
+		group = context.active_pose_bone.bone_group
+		if group:
+			self.operation = 'ASSIGN'
+			self.existing_group = group.name
+		else:
 			self.operation = 'NEW'
-		
+
 		wm = context.window_manager
 		return wm.invoke_props_dialog(self)
 
 	def execute(self, context):
 		bones = context.selected_pose_bones
-		group = context.object.pose.bone_groups.get(self.bone_group)
-		
+		groups = context.object.pose.bone_groups
+
 		if self.operation == 'ASSIGN':
-			if not group: return {'CANCELLED'}
+			group = groups.get(self.existing_group)
+			assert group, "How did you manage to select a group which doesn't exist!?"
 
 			for b in bones:
 				b.bone_group = group
-		
+
 		if self.operation == 'NEW':
-			group = context.object.pose.bone_groups.new(name=self.bone_group)
-			group.color_set = 'CUSTOM'
-			group.colors.normal = self.color_normal
-			group.colors.select = self.color_selected
-			group.colors.active = self.color_active
+			group = groups.new(name=self.new_group)
+			if group.name!=self.new_group:
+				self.report({'WARNING'}, f"Group name was already taken, it got a {group.name[-4:]} suffix!")
+			if self.color_preset!='DEFAULT':
+				group.color_set = 'CUSTOM'
+				group.colors.normal = self.color_normal
+				group.colors.select = self.color_selected
+				group.colors.active = self.color_active
 
 			for b in bones:
 				b.bone_group = group
@@ -177,7 +193,10 @@ class AssignBoneGroup(bpy.types.Operator):
 def register():
 	from bpy.utils import register_class
 	register_class(AssignBoneGroup)
+	bpy.types.VIEW3D_MT_pose_group.draw_old = bpy.types.VIEW3D_MT_pose_group.draw
+	bpy.types.VIEW3D_MT_pose_group.draw = AssignBoneGroup.draw_in_menu
 
 def unregister():
 	from bpy.utils import unregister_class
 	unregister_class(AssignBoneGroup)
+	bpy.types.VIEW3D_MT_pose_group.draw = bpy.types.VIEW3D_MT_pose_group.draw_old
