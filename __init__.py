@@ -21,9 +21,9 @@
 
 bl_info = {
 	"name": "MetsTools",
-	"author": "Mets3D",
-	"version": (2,3),
-	"blender": (2, 81, 0),
+	"author": "Demeter Dzadik",
+	"version": (2,4),
+	"blender": (3, 0, 0),
 	"location": "View3D > Search",
 	"description": "Random collection of tools I built for myself",
 	"category": "Rigging",
@@ -75,7 +75,7 @@ modules = [
 	resync_all_collections,
 	armature_merge,
 	edit_widget,
-	armature_constraint_vertex_parent
+	armature_constraint_vertex_parent,
 ]
 
 def register():
