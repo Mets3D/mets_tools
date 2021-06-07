@@ -4,6 +4,7 @@ You can install this like any other Blender Addon - Download as zip, then in Ble
 
 # Weight Painting Operators
 These operators have been split to a separate addon: [Easy Weight](https://gitlab.com/blender/easy-weight)
+I highly recommend using that addon too, since half of rigging is weight painting. That addon was also written with much higher standards and is much better maintained.
 
 # Rigging Operators
 
@@ -36,9 +37,7 @@ If you have a linked and proxied character in a scene, you can use this to re-lo
 The organization of functionality here could be better, but these should be fairly usable. If you run into straight up errors, let me know.  
 
 ### Delete Unused Vertex Groups
-Deletes unused vertex groups, "unused" being very carefully defined.  
-It will check for vertex groups used by any modifiers and shape keys, and not delete those.  
-There's options to consider vertex groups with any weights as used, and consider vertex groups corresponding to a deforming bone as used, even if empty.  
+Moved to [Easy Weight](https://gitlab.com/blender/easy-weight) addon.
 
 ### Delete Unused Material Slots
 This just calls the built-in "Remove Unused Slots" operator, except it can work on all selected objects, or all objects, instead of just the active object.
