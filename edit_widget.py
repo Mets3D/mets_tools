@@ -1,6 +1,7 @@
 import bpy
 from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty, EnumProperty
+from math import pi
 
 from .utils import EnsureVisible
 
@@ -99,7 +100,9 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 				shapes.append(shape)
 				bpy.ops.object.mode_set(mode='EDIT')
 
-				kwargs = {'location' : (0, 0, 0), 'rotation' : (0, 0, 0), 'scale' : (0.5, 0.5, 0.5)}
+				kwargs = {'location' : [0, 0, 0], 'rotation' : [-pi/2, 0, 0], 'scale' : [0.5, 0.5, 0.5]}
+				if self.shape_primitive in ['CONE', 'CYLINDER']:
+					kwargs['location'][1] = 0.5
 				operators = {
 					'PLANE' : bpy.ops.mesh.primitive_plane_add,
 					'CUBE' : bpy.ops.mesh.primitive_cube_add,
