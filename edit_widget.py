@@ -1,6 +1,6 @@
 import bpy
 from mathutils import Matrix
-from bpy.props import BoolProperty, StringProperty
+from bpy.props import BoolProperty, StringProperty, EnumProperty
 
 from .utils import EnsureVisible
 
@@ -13,8 +13,21 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 	bl_idname = "pose.toggle_edit_widget"
 	bl_label = "Toggle Edit Widget"
 	bl_options = {'REGISTER', 'UNDO'}
+	bl_property = "shape_name"	# This makes the text input field focused without clicking into it.
 
 	shape_name: StringProperty(name="Object Name")
+	shape_primitive: EnumProperty(name="Primitive",
+		items=[
+			('PLANE', 		'Plane', 		"Plane", 		'MESH_PLANE', 0),
+			('CUBE', 		'Cube', 		"Cube", 		'MESH_CUBE', 1),
+			('CIRCLE', 		'Circle', 		"Circle", 		'MESH_CIRCLE', 2),
+			('SPHERE_UV', 	'UV Sphere', 	"UV Sphere", 	'MESH_UVSPHERE', 3),
+			('SPHERE_ICO', 	'Ico Sphere', 	"Ico Sphere", 	'MESH_ICOSPHERE', 4),
+			('CYLINDER', 	'Cylinder', 	"Cylinder", 	'MESH_CYLINDER', 5),
+			('CONE', 		'Cone', 		"Cone", 		'MESH_CONE', 6)
+		],
+		default = 'CUBE'
+	)
 
 	@classmethod
 	def poll(cls, context):
@@ -29,17 +42,18 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		if context.mode=='EDIT_MESH':
 			return self.execute(context)
 		
-		# If none of the selected bones have a bone shape, we will be creating one, so ask for a name!
-		ask_for_name = True
+		# If no selected bone has a bone shape, we will be creating one,
+		# so ask for some input.
+		ask_for_input = True
 		for pb in context.selected_pose_bones:
 			if pb.custom_shape:
-				ask_for_name = False
+				ask_for_input = False
 				break
-		if ask_for_name:
+
+		if ask_for_input:
 			pb = context.active_pose_bone
 			self.new_name = "WGT-"+pb.name
 			wm = context.window_manager
-			print("weeeee I'm retard")
 			return wm.invoke_props_dialog(self)
 		else:
 			return self.execute(context)
@@ -50,6 +64,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		layout.use_property_decorate = False
 
 		layout.row().prop(self, "shape_name")
+		layout.row().prop(self, "shape_primitive")
 
 	def execute(self, context):
 		global widgets_visible
@@ -83,7 +98,19 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 				context.view_layer.objects.active = shape
 				shapes.append(shape)
 				bpy.ops.object.mode_set(mode='EDIT')
-				bpy.ops.mesh.primitive_cube_add(location=(0,0,0), rotation=(0,0,0), scale=(0.5,0.5,0.5))
+
+				kwargs = {'location' : (0, 0, 0), 'rotation' : (0, 0, 0), 'scale' : (0.5, 0.5, 0.5)}
+				operators = {
+					'PLANE' : bpy.ops.mesh.primitive_plane_add,
+					'CUBE' : bpy.ops.mesh.primitive_cube_add,
+					'CIRCLE' : bpy.ops.mesh.primitive_circle_add,
+					'SPHERE_UV' : bpy.ops.mesh.primitive_uv_sphere_add,
+					'SPHERE_ICO' : bpy.ops.mesh.primitive_ico_sphere_add,
+					'CYLINDER' : bpy.ops.mesh.primitive_cylinder_add,
+					'CONE' : bpy.ops.mesh.primitive_cone_add,
+				}
+				operators[self.shape_primitive](**kwargs)
+
 				bpy.ops.object.mode_set(mode='OBJECT')
 				context.view_layer.objects.active = rig
 				bpy.ops.object.mode_set(mode='POSE')
