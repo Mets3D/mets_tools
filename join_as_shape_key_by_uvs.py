@@ -16,7 +16,7 @@ def uv_from_vert_average(uv_layer, v):
 		return None
 
 class JoinAsShapeKeyByUVs(bpy.types.Operator):
-	""" Transfer the shape of selected objects into shape keys on the active object. The objects need to have identical topology and UV layout on UV layer 1. Those UV layers shouldn't have any overlapping UVs. """
+	"""Transfer the shape of selected objects into shape keys on the active object. The objects need to have identical topology and UV layout on UV layer 1. Those UV layers shouldn't have any overlapping UVs"""
 	bl_idname = "object.join_as_shape_key_by_uvs"
 	bl_label = "Join as Shape Key by UVs"
 	bl_options = {'REGISTER', 'UNDO'}
@@ -26,7 +26,7 @@ class JoinAsShapeKeyByUVs(bpy.types.Operator):
 	precision: FloatProperty(
 		name='Precision',
 		default=0.0001,
-		description="UV coord matching precision. Higher values are less precise. Too high will cause mismatches and too low will cause no matches. Ideally your UVs are absolutely exactly the same and you can keep this value very low without getting any non-matches."
+		description="UV coord matching precision. Higher values are less precise. Too high will cause mismatches and too low will cause no matches. Ideally your UVs are absolutely exactly the same and you can keep this value very low without getting any non-matches"
 	)
 
 	def execute(self, context):

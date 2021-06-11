@@ -345,7 +345,7 @@ class CleanUpMeshes(bpy.types.Operator):
 	)
 	clear_unused_UVs: bpy.props.BoolProperty(
 		name="Delete Unused UV Maps",
-		description="If all UV verts' X coordinate is 0, the UV map will be deleted.",
+		description="If all UV verts' X coordinate is 0, the UV map will be deleted",
 		default=True
 	)
 	

@@ -25,7 +25,7 @@ presets = {
 }
 
 class AssignBoneGroup(bpy.types.Operator):
-	"""Assign or remove bone groups from the selected pose bones."""
+	"""Assign or remove bone groups from the selected pose bones"""
 	bl_idname = "armature.assign_group"
 	bl_label = "Assign Selected Bones to Bone Group"
 	bl_options = {'REGISTER', 'UNDO'}
@@ -35,9 +35,9 @@ class AssignBoneGroup(bpy.types.Operator):
 	operation: EnumProperty(
 		name="Operation", 
 		items=(
-			('ASSIGN', "Existing", "Assign selected bones to an existing group."),
-			('NEW', "New", "Assign selected bones to a new group."),
-			('REMOVE', "None", "Remove selected bones from their current group."),
+			('ASSIGN', "Existing", "Assign selected bones to an existing group"),
+			('NEW', "New", "Assign selected bones to a new group"),
+			('REMOVE', "None", "Remove selected bones from their current group"),
 		),
 		default = 'ASSIGN'
 	)

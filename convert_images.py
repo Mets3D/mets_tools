@@ -2,7 +2,7 @@ import bpy
 from bpy.props import *
 
 class ConvertImages(bpy.types.Operator):
-	"""Convert images with one or any extension to whatever you have set in your render output settings. Uses Image.save_as_render()."""
+	"""Convert images with one or any extension to whatever you have set in your render output settings. Uses Image.save_as_render()"""
 	bl_idname = "image.convert_images"
 	bl_label = "Convert Images"
 	bl_options = {'REGISTER'}
@@ -10,13 +10,13 @@ class ConvertImages(bpy.types.Operator):
 	from_ext: StringProperty(
 		name="From Extension",
 		default="dds",
-		description="Images with this file extension will be converted. The old images will still be in their original directory, but will no longer be referenced by this .blend file. Leaving this empty will convert all images. The target format is defined by your render output settings."
+		description="Images with this file extension will be converted. The old images will still be in their original directory, but will no longer be referenced by this .blend file. Leaving this empty will convert all images. The target format is defined by your render output settings"
 	)
 
 	rename_files: BoolProperty(
 		name="Rename Files",
 		default=False,
-		description="If enabled, rename the converted files to the name of the image datablock (the name displayed in the image editor's header) - IMPORTANT: Image datablock name should NOT contain extension ",
+		description="If enabled, rename the converted files to the name of the image datablock (the name displayed in the image editor's header) - IMPORTANT: Image datablock name should NOT contain extension",
 		options={'SKIP_SAVE'}
 	)
 

@@ -81,7 +81,7 @@ def calc_weighted_normal(bm, vert_index, edge_index, cache):
 	return normal.normalized()
 
 class WeightNormalsCalculator(bpy.types.Operator):
-	"""Calculate weighted normals for active object."""
+	"""Calculate weighted normals for active object"""
 	bl_idname = "object.calculate_weighted_normals"
 	bl_label = "Weight Normals"
 	bl_options = {'REGISTER', 'UNDO'}

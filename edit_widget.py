@@ -184,7 +184,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		return {'FINISHED'}
 
 class POSE_OT_make_widget_unique(bpy.types.Operator):
-	"""Re-assign this bone's shape to a unique duplicate, so it can be edited without affecting other bones using the same widget."""
+	"""Re-assign this bone's shape to a unique duplicate, so it can be edited without affecting other bones using the same widget"""
 
 	bl_idname = "pose.make_widget_unique"
 	bl_label = "Make Unique Duplicate of Widget"
