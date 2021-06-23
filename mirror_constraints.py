@@ -449,7 +449,7 @@ class XMirrorConstraints(bpy.types.Operator):
 
 		for b in context.selected_pose_bones:
 			#TODO: Make a separate operator for "splitting" constraints in left/right parts. (by halving their influence, then mirror copying them onto the same bone)
-			
+
 			armature = context.object
 
 			flipped_name = utils.flip_name(b.name)
@@ -464,7 +464,7 @@ class XMirrorConstraints(bpy.types.Operator):
 
 			# Mirror bone layers
 			opp_b.bone.layers = b.bone.layers
-			
+
 			data_b = armature.data.bones.get(b.name)
 			opp_data_b = armature.data.bones.get(opp_b.name)
 
@@ -478,7 +478,7 @@ class XMirrorConstraints(bpy.types.Operator):
 			# Mirror or split constraints and drivers on constraint properties.
 			for c in b.constraints:
 				mirror_constraint(armature, b, c)
-		
+
 			# Mirroring Bendy Bone settings
 			opp_data_b.bbone_handle_type_start 		= data_b.bbone_handle_type_start
 			opp_data_b.bbone_handle_type_end 		= data_b.bbone_handle_type_end
@@ -497,14 +497,12 @@ class XMirrorConstraints(bpy.types.Operator):
 			# Edit mode curve settings
 			opp_data_b.bbone_curveinx = data_b.bbone_curveinx *-1
 			opp_data_b.bbone_curveoutx = data_b.bbone_curveoutx *-1
-			opp_data_b.bbone_curveiny = data_b.bbone_curveiny
-			opp_data_b.bbone_curveouty = data_b.bbone_curveouty
+			opp_data_b.bbone_curveinz = data_b.bbone_curveinz
+			opp_data_b.bbone_curveoutz = data_b.bbone_curveoutz
 			opp_data_b.bbone_rollin = data_b.bbone_rollin *-1
 			opp_data_b.bbone_rollout = data_b.bbone_rollout *-1
-			opp_data_b.bbone_scaleinx = data_b.bbone_scaleinx
-			opp_data_b.bbone_scaleiny = data_b.bbone_scaleiny
-			opp_data_b.bbone_scaleoutx = data_b.bbone_scaleoutx
-			opp_data_b.bbone_scaleouty = data_b.bbone_scaleouty
+			opp_data_b.bbone_scalein = data_b.bbone_scalein[:]
+			opp_data_b.bbone_scaleout = data_b.bbone_scaleout[:]
 			#TODO: Mirror bbone curve values.
 
 			# Mirroring bone shape
