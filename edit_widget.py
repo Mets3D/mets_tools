@@ -1,12 +1,134 @@
+import os
 import bpy
 from mathutils import Matrix
 from bpy.props import BoolProperty, StringProperty, EnumProperty
-from math import pi
 
 from .utils import EnsureVisible
 
-
 widgets_visible = []
+widget_items = []
+
+def restore_all_widgets_visibility():
+	global widgets_visible
+
+	if widgets_visible != []:
+		for w in widgets_visible[:]:
+			try:
+				w.restore()
+			except:
+				pass
+	widgets_visible = []
+
+def assign_to_collection(obj, collection):
+	if not collection:
+		return
+	if obj.name not in collection.objects:
+		collection.objects.link(obj)
+
+def ensure_widget(context, wgt_name, ob_name=None, collection=None):
+	"""Load a single widget from Widgets.blend."""
+
+	# If widget already exists locally, return it.
+	wgt_ob = bpy.data.objects.get((wgt_name, None))
+	if wgt_ob and ob_name == wgt_ob.name:
+		return wgt_ob
+
+	# Loading widget object from file.
+	filename = "Widgets.blend"
+	filedir = os.path.dirname(os.path.realpath(__file__))
+	blend_path = os.path.join(filedir, filename)
+
+	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+		for o in data_from.objects:
+			if o == wgt_name:
+				data_to.objects.append(o)
+
+	wgt_ob = bpy.data.objects.get((wgt_name, None))
+
+	if not wgt_ob:
+		print("WARNING: Failed to load widget: " + wgt_name)
+		return
+
+	if not collection:
+		collection = context.scene.collection
+	assign_to_collection(wgt_ob, collection)
+
+	if ob_name:
+		wgt_ob.name = ob_name
+
+	return wgt_ob
+
+def get_widget_list(self, context):
+	"""This is needed because bpy.props.EnumProperty.items needs to be a dynamic list,
+	which it can only be with a function callback."""
+	global widget_items
+
+	local_widgets = []
+	for o in bpy.data.objects:
+		if o.name.startswith("WGT"):
+			ui_name = o.name.replace("WGT-", "").replace("_", " ")
+			item = (o.name, ui_name, ui_name)
+			local_widgets.append(item)
+
+			for existing in widget_items:
+				if existing == item:
+					widget_items.remove(existing)
+					break
+
+	local_widgets.append(None)
+
+	local_widgets.extend(widget_items)
+
+	return local_widgets
+
+def refresh_widget_list():
+	"""Build a list of available custom shapes by checking inside Widgets.blend."""
+
+	global widget_items
+	widget_items = []
+
+	filename = "Widgets.blend"
+	filedir = os.path.dirname(os.path.realpath(__file__))
+	blend_path = os.path.join(filedir, filename)
+
+	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
+		for o in data_from.objects:
+			if o.startswith("WGT-"):
+				ui_name = o.replace("WGT-", "").replace("_", " ")
+				widget_items.append((o, ui_name, ui_name))
+
+	return widget_items
+
+def transform_widget_to_bone(pb: bpy.types.PoseBone, select=False):
+	"""Transform a pose bone's custom shape object to match the bone's visual transforms."""
+	shape = pb.custom_shape
+	if not shape:
+		return
+
+	if select:
+		shape.select_set(True)
+
+	transform_bone = pb
+	if pb.custom_shape_transform:
+		transform_bone = pb.custom_shape_transform
+
+	# Step 1: Account for additional scaling from use_custom_shape_bone_size, 
+	# which scales the shape by the bone length.
+	scale = pb.custom_shape_scale_xyz.copy()
+	if pb.use_custom_shape_bone_size:
+		scale *= pb.bone.length
+
+	# Step 2: Create a matrix from the custom shape translation, rotation
+	# and this scale which already accounts for bone length.
+	custom_shape_matrix = Matrix.LocRotScale(pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale)
+
+	# Step 3: Multiply the pose bone's world matrix by the custom shape matrix.
+	final_matrix = transform_bone.matrix @ custom_shape_matrix
+
+	# Step 4: Apply this matrix to the object. 
+	# It should now match perfectly with the visual transforms of the pose bone, 
+	# unless there is skew.
+	shape.matrix_world = final_matrix
 
 class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 	"""Toggle entering and leaving edit mode on a bone widget"""
@@ -14,21 +136,20 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 	bl_idname = "pose.toggle_edit_widget"
 	bl_label = "Toggle Edit Widget"
 	bl_options = {'REGISTER', 'UNDO'}
-	bl_property = "shape_name"	# This makes the text input field focused without clicking into it.
 
-	shape_name: StringProperty(name="Object Name")
-	shape_primitive: EnumProperty(name="Primitive",
-		items=[
-			('PLANE', 		'Plane', 		"Plane", 		'MESH_PLANE', 0),
-			('CUBE', 		'Cube', 		"Cube", 		'MESH_CUBE', 1),
-			('CIRCLE', 		'Circle', 		"Circle", 		'MESH_CIRCLE', 2),
-			('SPHERE_UV', 	'UV Sphere', 	"UV Sphere", 	'MESH_UVSPHERE', 3),
-			('SPHERE_ICO', 	'Ico Sphere', 	"Ico Sphere", 	'MESH_ICOSPHERE', 4),
-			('CYLINDER', 	'Cylinder', 	"Cylinder", 	'MESH_CYLINDER', 5),
-			('CONE', 		'Cone', 		"Cone", 		'MESH_CONE', 6)
-		],
-		default = 'CUBE'
+	def update_name(self, context):
+		if not self.use_custom_widget_name:
+			self.widget_name = self.widget_shape
+		else:
+			# Use the active bone for the initial naming of the shape.
+			self.widget_name = "WGT-" + context.active_pose_bone.name
+
+	widget_name: StringProperty(name="Widget Name")
+	widget_shape: EnumProperty(name="Widget Shape",
+		items = get_widget_list,
+		update = update_name
 	)
+	use_custom_widget_name: BoolProperty(name="Custom Name", update=update_name)
 
 	@classmethod
 	def poll(cls, context):
@@ -42,7 +163,9 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 	def invoke(self, context, event):
 		if context.mode=='EDIT_MESH':
 			return self.execute(context)
-		
+
+		refresh_widget_list()
+
 		# If no selected bone has a bone shape, we will be creating one,
 		# so ask for some input.
 		ask_for_input = True
@@ -52,8 +175,7 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 				break
 
 		if ask_for_input:
-			pb = context.active_pose_bone
-			self.new_name = "WGT-"+pb.name
+			self.update_name(context)
 			wm = context.window_manager
 			return wm.invoke_props_dialog(self)
 		else:
@@ -64,122 +186,89 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		layout.use_property_split = True
 		layout.use_property_decorate = False
 
-		layout.row().prop(self, "shape_name")
-		layout.row().prop(self, "shape_primitive")
+		# We want to put a textbox and a toggle button underneath an enum drop-down
+		# in a way that they align, which is sadly an absolute nightmare.
+		row1 = layout.row()
+		split1 = row1.split(factor=0.4)
+		split1.alignment = 'RIGHT'
+		split1.label(text="Widget Shape")
+		split1.prop(self, 'widget_shape', text="")
 
-	def execute(self, context):
-		global widgets_visible
+		row2 = layout.row()
+		split2 = row2.split(factor=0.4)
+		split2.alignment = 'RIGHT'
+		split2.label(text="Widget Name")
+		row = split2.row(align=True)
+		sub1 = row.row()
+		sub1.enabled = self.use_custom_widget_name
+		sub1.prop(self, 'widget_name', text="")
 
-		if context.mode=='POSE':
-			rig = context.object
+		sub2 = row.row()
+		sub2.prop(self, 'use_custom_widget_name', text="", icon='GREASEPENCIL')
 
-			# If multiple bones are selected, list all their bone shapes.
-			shapes = []
-			for pb in context.selected_pose_bones:
-				if pb.custom_shape:
-					shapes.append(pb.custom_shape)
-			# If none of the selected bones had a bone shape, create a new bone shape that is shared across all selected bones.
-			# Use the active bone for naming the shape.
-			if shapes==[]:
-				name = self.shape_name
-				mesh = bpy.data.meshes.new(name)
-				shape = bpy.data.objects.new(name, mesh)
-				# CloudRig integration! if we're on a metarig, use the widget collection.
-				collection = context.scene.collection
-				if hasattr(rig.data, 'cloudrig_parameters') and rig.data.cloudrig_parameters.widget_collection:
-					collection = rig.data.cloudrig_parameters.widget_collection
-				collection.objects.link(shape)
-				# In case we just moved the shape to a disabled collection, make sure it's visible!
-				if not shape.visible_get():
-					widgets_visible = [EnsureVisible(shape)]
-				for pb in context.selected_pose_bones:
-					pb.custom_shape = shape
+	def load_and_assign_widget(self, context, widget_name):
+		rig = context.object
+		collection = context.scene.collection
+		if hasattr(rig.data, 'cloudrig_parameters') and rig.data.cloudrig_parameters.widget_collection:
+			# CloudRig integration: If we're on a metarig, use the widget collection.
+			collection = rig.data.cloudrig_parameters.widget_collection
+		shape = ensure_widget(context, widget_name, collection=collection)
 
-				bpy.ops.object.mode_set(mode='OBJECT')
-				context.view_layer.objects.active = shape
-				shapes.append(shape)
-				bpy.ops.object.mode_set(mode='EDIT')
+		# Assign to selected bones.
+		for pb in context.selected_pose_bones:
+			pb.custom_shape = shape
 
-				kwargs = {'location' : [0, 0, 0], 'rotation' : [-pi/2, 0, 0], 'scale' : [0.5, 0.5, 0.5]}
-				if self.shape_primitive in ['CONE', 'CYLINDER']:
-					kwargs['location'][1] = 0.5
-				operators = {
-					'PLANE' : bpy.ops.mesh.primitive_plane_add,
-					'CUBE' : bpy.ops.mesh.primitive_cube_add,
-					'CIRCLE' : bpy.ops.mesh.primitive_circle_add,
-					'SPHERE_UV' : bpy.ops.mesh.primitive_uv_sphere_add,
-					'SPHERE_ICO' : bpy.ops.mesh.primitive_ico_sphere_add,
-					'CYLINDER' : bpy.ops.mesh.primitive_cylinder_add,
-					'CONE' : bpy.ops.mesh.primitive_cone_add,
-				}
-				operators[self.shape_primitive](**kwargs)
+	def execute_from_pose_mode(self, context):
+		rig = context.object
 
-				bpy.ops.object.mode_set(mode='OBJECT')
-				context.view_layer.objects.active = rig
-				bpy.ops.object.mode_set(mode='POSE')
-			# If one or bones with a bone shape were selected, make sure all previous shapes' visibility is restored before ensuring the current shapes' visibility.
-			else:
-				if widgets_visible != []:
-					for w in widgets_visible[:]:
-						try:
-							w.restore()
-						except:
-							widgets_visible.remove(w)
-				for s in shapes:
-					widgets_visible.append(EnsureVisible(s))
+		# If multiple bones are selected, make a list of their bone shapes.
+		selected_pbs = context.selected_pose_bones[:]
+		shapes = list(set([b.custom_shape for b in selected_pbs if b.custom_shape]))
 
-			# Enter mesh edit mode on all bone shapes.
-			# Bones without a bone shape are ignored for this case.
-
-			pose_bones = list(context.selected_pose_bones)[:]
-			active_pb = context.active_pose_bone
-			bpy.ops.object.mode_set(mode='OBJECT')
-			context.scene.widget_edit_armature = rig.name
-			context.view_layer.objects.active = shapes[0]
-			bpy.ops.object.select_all(action='DESELECT')
-			for pb in pose_bones:
-				shape = pb.custom_shape
-				if shape == active_pb.custom_shape and pb != active_pb: continue
-				shape.select_set(True)
-
-				transform_bone = pb
-				if pb.custom_shape_transform:
-					transform_bone = pb.custom_shape_transform
-
-				# Then we figure out the world matrix for the object which will make it match
-				# the pose bone.
-
-				# First: We need to account for additional scaling from the 
-				# use_custom_shape_bone_size flag, which scales the shape by the bone length.
-				scale = pb.custom_shape_scale_xyz.copy()
-				if pb.use_custom_shape_bone_size:
-					scale *= pb.bone.length
-
-				# Second: We create a matrix from the custom shape translation, rotation
-				# and this scale which already accounts for bone length.
-				custom_shape_matrix = Matrix.LocRotScale(pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale)
-
-				# Then we multiply the pose bone's world matrix by the custom shape matrix
-				final_matrix = transform_bone.matrix @ custom_shape_matrix
-
-				# Applying this matrix to the object should make it match perfectly
-				# with the visual location, rotation and scale of the pose bone.
-				shape.matrix_world = final_matrix
-
-			bpy.ops.object.mode_set(mode='EDIT')
+		if shapes == []:
+			# If none of the selected bones had a shape, user was prompted to pick one.
+			self.load_and_assign_widget(context, self.widget_shape)
+			return
 		
-		elif context.mode=='EDIT_MESH':
-			# Restore everything to how it was before we entered edit mode on the widgets.
-			bpy.ops.object.mode_set(mode='OBJECT')
-			context.view_layer.objects.active = bpy.data.objects.get(context.scene.widget_edit_armature)
-			context.scene.widget_edit_armature = ""
-			bpy.ops.object.mode_set(mode='POSE')
-			if widgets_visible != []:
-				for w in widgets_visible:
-					w.restore()
-			widgets_visible = []
+		# If bones with a shape were selected, make sure all previous shapes' 
+		# visibility is restored before ensuring the current shapes' visibility.
+		global widgets_visible
+		restore_all_widgets_visibility()
+		for s in shapes:
+			widgets_visible.append(EnsureVisible(s))
+
+		# Enter mesh edit mode on all shapes of selected bones.
+		active_pb = context.active_pose_bone
+		bpy.ops.object.mode_set(mode='OBJECT')
+		
+		context.scene.widget_edit_armature = rig.name
+		context.view_layer.objects.active = shapes[0]
+		bpy.ops.object.select_all(action='DESELECT')
+		for pb in selected_pbs:
+			if pb.custom_shape == active_pb.custom_shape and pb != active_pb:
+				# Don't snap active bone's shape to some other bone.
+				continue
+			transform_widget_to_bone(pb, select=True)
+			context.view_layer.update()
+
+		bpy.ops.object.mode_set(mode='EDIT')
+
+	def execute_from_edit_mode(self, context):
+		"""Restore widget visibilities, rig selection state and mode."""
+		bpy.ops.object.mode_set(mode='OBJECT')
+		context.view_layer.objects.active = bpy.data.objects.get(context.scene.widget_edit_armature)
+		context.scene.widget_edit_armature = ""
+		bpy.ops.object.mode_set(mode='POSE')
+		restore_all_widgets_visibility()
 
 		context.scene.is_widget_edit_mode = not context.scene.is_widget_edit_mode
+		context.view_layer.update()
+
+	def execute(self, context):
+		if context.mode == 'POSE':
+			self.execute_from_pose_mode(context)
+		elif context.mode == 'EDIT_MESH':
+			self.execute_from_edit_mode(context)
 
 		return {'FINISHED'}
 
