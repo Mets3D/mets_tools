@@ -25,12 +25,12 @@ def assign_to_collection(obj, collection):
 	if obj.name not in collection.objects:
 		collection.objects.link(obj)
 
-def ensure_widget(context, wgt_name, ob_name=None, collection=None):
+def ensure_widget(context, wgt_name, ob_name="", collection=None):
 	"""Load a single widget from Widgets.blend."""
 
 	# If widget already exists locally, return it.
 	wgt_ob = bpy.data.objects.get((wgt_name, None))
-	if wgt_ob and ob_name == wgt_ob.name:
+	if wgt_ob and ob_name in ["", wgt_ob.name]:
 		return wgt_ob
 
 	# Loading widget object from file.
@@ -206,13 +206,13 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 		sub2 = row.row()
 		sub2.prop(self, 'use_custom_widget_name', text="", icon='GREASEPENCIL')
 
-	def load_and_assign_widget(self, context, widget_name):
+	def load_and_assign_widget(self, context, widget_name, ob_name=""):
 		rig = context.object
 		collection = context.scene.collection
 		if hasattr(rig.data, 'cloudrig_parameters') and rig.data.cloudrig_parameters.widget_collection:
 			# CloudRig integration: If we're on a metarig, use the widget collection.
 			collection = rig.data.cloudrig_parameters.widget_collection
-		shape = ensure_widget(context, widget_name, collection=collection)
+		shape = ensure_widget(context, widget_name, ob_name=ob_name, collection=collection)
 
 		# Assign to selected bones.
 		for pb in context.selected_pose_bones:
@@ -227,9 +227,9 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 
 		if shapes == []:
 			# If none of the selected bones had a shape, user was prompted to pick one.
-			self.load_and_assign_widget(context, self.widget_shape)
+			self.load_and_assign_widget(context, self.widget_shape, self.widget_name)
 			return
-		
+
 		# If bones with a shape were selected, make sure all previous shapes' 
 		# visibility is restored before ensuring the current shapes' visibility.
 		global widgets_visible
