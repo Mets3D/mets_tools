@@ -317,9 +317,44 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
 
 		return {'FINISHED'}
 
+class POSE_OT_assign_asset_as_widget(bpy.types.Operator):
+	"""Assign this asset as the custom shape for selected bones"""
+	bl_idname = "pose.assign_asset_as_custom_shape"
+	bl_label = "Assign Asset as Custom Shape"
+	bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+	ob_name: StringProperty()
+
+	@classmethod
+	def poll(cls, context):
+		return context.mode=='POSE'
+
+	def execute(self, context):
+		obj = bpy.data.objects.get(self.ob_name)
+		assert obj, "TODO: Automatically append the widget before trying to apply it"
+
+		for pb in context.selected_pose_bones:
+			pb.custom_shape = obj
+			# Reset any transform values
+			pb.custom_shape_scale_xyz = [1, 1, 1]
+			pb.custom_shape_translation = [0, 0, 0]
+			pb.custom_shape_rotation_euler = [0, 0, 0]
+		
+		return {'FINISHED'}
+
+def draw_asset_rightclick_menu(self, context):
+	layout = self.layout
+	ob = context.asset_file_handle.asset_data.id_data
+	if context.asset_file_handle.name.startswith("WGT-") and context.selected_pose_bones:
+		op = layout.operator(POSE_OT_assign_asset_as_widget.bl_idname)
+		op.ob_name = context.asset_file_handle.name
+
 def register():
 	bpy.utils.register_class(POSE_OT_toggle_edit_widget)
 	bpy.utils.register_class(POSE_OT_make_widget_unique)
+	bpy.utils.register_class(POSE_OT_assign_asset_as_widget)
+
+	bpy.types.ASSETBROWSER_MT_context_menu.append(draw_asset_rightclick_menu)
 
 	bpy.types.Scene.is_widget_edit_mode = BoolProperty()
 	bpy.types.Scene.widget_edit_armature = StringProperty()
@@ -327,6 +362,9 @@ def register():
 def unregister():
 	bpy.utils.unregister_class(POSE_OT_toggle_edit_widget)
 	bpy.utils.unregister_class(POSE_OT_make_widget_unique)
+	bpy.utils.unregister_class(POSE_OT_assign_asset_as_widget)
+
+	bpy.types.ASSETBROWSER_MT_context_menu.remove(draw_asset_rightclick_menu)
 
 	del bpy.types.Scene.is_widget_edit_mode
 	del bpy.types.Scene.widget_edit_armature
