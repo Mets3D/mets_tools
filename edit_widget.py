@@ -29,7 +29,10 @@ def ensure_widget(context, wgt_name, ob_name="", collection=None):
 	"""Load a single widget from Widgets.blend."""
 
 	# If widget already exists locally, return it.
-	wgt_ob = bpy.data.objects.get((wgt_name, None))
+	if ob_name:
+		wgt_ob = bpy.data.objects.get((ob_name, None))
+	else:
+		wgt_ob = bpy.data.objects.get((wgt_name, None))
 	if wgt_ob and ob_name in ["", wgt_ob.name]:
 		return wgt_ob
 
@@ -38,12 +41,19 @@ def ensure_widget(context, wgt_name, ob_name="", collection=None):
 	filedir = os.path.dirname(os.path.realpath(__file__))
 	blend_path = os.path.join(filedir, filename)
 
+	appended_name = wgt_name
+	counter = 0
 	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
 		for o in data_from.objects:
 			if o == wgt_name:
 				data_to.objects.append(o)
+				o.name += "Test"
+				print(o.name)
 
-	wgt_ob = bpy.data.objects.get((wgt_name, None))
+	if ob_name:
+		wgt_ob = bpy.data.objects.get((ob_name, None))
+	else:
+		wgt_ob = bpy.data.objects.get((wgt_name, None))
 
 	if not wgt_ob:
 		print("WARNING: Failed to load widget: " + wgt_name)
