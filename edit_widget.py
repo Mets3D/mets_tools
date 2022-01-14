@@ -47,8 +47,6 @@ def ensure_widget(context, wgt_name, ob_name="", collection=None):
 		for o in data_from.objects:
 			if o == wgt_name:
 				data_to.objects.append(o)
-				o.name += "Test"
-				print(o.name)
 
 	if ob_name:
 		wgt_ob = bpy.data.objects.get((ob_name, None))
