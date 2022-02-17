@@ -41,8 +41,6 @@ def ensure_widget(context, wgt_name, ob_name="", collection=None):
 	filedir = os.path.dirname(os.path.realpath(__file__))
 	blend_path = os.path.join(filedir, filename)
 
-	appended_name = wgt_name
-	counter = 0
 	with bpy.data.libraries.load(blend_path) as (data_from, data_to):
 		for o in data_from.objects:
 			if o == wgt_name:
@@ -217,9 +215,9 @@ class POSE_OT_toggle_edit_widget(bpy.types.Operator):
 	def load_and_assign_widget(self, context, widget_name, ob_name=""):
 		rig = context.object
 		collection = context.scene.collection
-		if hasattr(rig.data, 'cloudrig_parameters') and rig.data.cloudrig_parameters.widget_collection:
-			# CloudRig integration: If we're on a metarig, use the widget collection.
-			collection = rig.data.cloudrig_parameters.widget_collection
+		if hasattr(rig.data, 'rigify_widgets_collection') and rig.data.rigify_widgets_collection:
+			# Rigify integration: If we're on a metarig, use the widget collection.
+			collection = rig.data.rigify_widgets_collection
 		shape = ensure_widget(context, widget_name, ob_name=ob_name, collection=collection)
 
 		# Assign to selected bones.
@@ -311,7 +309,6 @@ class POSE_OT_make_widget_unique(bpy.types.Operator):
 	def execute(self, context):
 		pb = context.active_pose_bone
 		shape = pb.custom_shape
-		rig = context.object
 
 		mesh = bpy.data.meshes.new_from_object(shape)
 		mesh.name = self.new_name
