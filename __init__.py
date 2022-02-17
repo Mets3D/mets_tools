@@ -31,7 +31,7 @@ bl_info = {
 	"tracker_url": "https://github.com/Mets3D/mets_tools/issues/new",
 }
 	
-import bpy, importlib
+import importlib
 
 from . import create_lightmap_uvs
 from . import make_physics_bones
@@ -51,7 +51,6 @@ from . import weld_normals
 from . import relink_character_rig
 from . import resync_all_collections
 from . import armature_merge
-from . import edit_widget
 from . import armature_constraint_vertex_parent
 
 # Each module is expected to have a register() and unregister() function.
@@ -74,7 +73,6 @@ modules = [
 	relink_character_rig,
 	resync_all_collections,
 	armature_merge,
-	edit_widget,
 	armature_constraint_vertex_parent,
 ]
 
