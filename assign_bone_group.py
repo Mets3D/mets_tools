@@ -84,7 +84,7 @@ class AssignBoneGroup(bpy.types.Operator):
 		obj = context.object
 		return obj \
 			and obj.type == 'ARMATURE' \
-			and not obj.proxy \
+			and (not hasattr(obj, 'proxy') or not obj.proxy) \
 			and obj.mode == 'POSE' \
 			and len(pbs) > 0 \
 			and pb \
