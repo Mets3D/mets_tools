@@ -52,6 +52,7 @@ from . import relink_character_rig
 from . import resync_all_collections
 from . import armature_merge
 from . import armature_constraint_vertex_parent
+from . import parent_with_armature_constraint
 
 # Each module is expected to have a register() and unregister() function.
 modules = [
@@ -74,6 +75,7 @@ modules = [
 	resync_all_collections,
 	armature_merge,
 	armature_constraint_vertex_parent,
+	parent_with_armature_constraint
 ]
 
 def register():
