@@ -53,6 +53,7 @@ from . import resync_all_collections
 from . import armature_merge
 from . import armature_constraint_vertex_parent
 from . import parent_with_armature_constraint
+from . import better_bone_extrude
 
 # Each module is expected to have a register() and unregister() function.
 modules = [
@@ -75,7 +76,8 @@ modules = [
 	resync_all_collections,
 	armature_merge,
 	armature_constraint_vertex_parent,
-	parent_with_armature_constraint
+	parent_with_armature_constraint,
+	better_bone_extrude
 ]
 
 def register():
