@@ -25,14 +25,19 @@ class Parent_With_Armature_Constraint(bpy.types.Operator):
                     break
 
         # Find objects with no parent.
-        parentless_obs = [o for o in selected_obs if not o.parent]
+        obs_to_parent = [o for o in selected_obs if not o.parent and o != active_ob]
+
+        # If there aren't any, just use all of them.
+        if not obs_to_parent:
+            obs_to_parent = selected_obs
 
         # Parent these objects to the active object, and,
         # create an Armature constraint targetting the active bone.
-        for o in parentless_obs:
+        for o in obs_to_parent:
             if o == active_ob:
                 continue
             o.parent = active_ob
+            o.parent_type = 'OBJECT'
 
             for c in o.constraints:
                 if c.type == 'ARMATURE':
