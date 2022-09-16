@@ -1,4 +1,5 @@
 import bpy
+from mathutils import Matrix
 
 class Parent_With_Armature_Constraint(bpy.types.Operator):
     bl_idname = "object.parent_with_armature_constraint"
@@ -36,8 +37,13 @@ class Parent_With_Armature_Constraint(bpy.types.Operator):
         for o in obs_to_parent:
             if o == active_ob:
                 continue
+            mat = o.matrix_world.copy()
+            o.parent = None
+            o.matrix_parent_inverse = type(mat).Identity(4)
             o.parent = active_ob
             o.parent_type = 'OBJECT'
+            o.matrix_parent_inverse = active_ob.matrix_world.inverted()
+            o.matrix_world = mat
 
             for c in o.constraints:
                 if c.type == 'ARMATURE':
