@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import StringProperty, EnumProperty, FloatVectorProperty
+from bpy.props import StringProperty, EnumProperty, FloatVectorProperty, BoolProperty
 
 # This operator is a replacement for the (useless) built-in Ctrl+G bone group menu in pose mode.
 # It lets you assign the selected bones to an existing bone group, or create a new one, or unassign from all.
@@ -32,6 +32,7 @@ class AssignBoneGroup(bpy.types.Operator):
 
 	new_group: StringProperty(name="Bone Group", default="Group")
 	existing_group: StringProperty(name="Bone Group", default="Group")	# Important that this always gets initialized to a valid bone group, unless there aren't any.
+	rename_existing: BoolProperty(name="Rename Existing Group", default=False)
 	operation: EnumProperty(
 		name="Operation", 
 		items=(
@@ -94,56 +95,6 @@ class AssignBoneGroup(bpy.types.Operator):
 		layout = self.layout
 		layout.operator(AssignBoneGroup.bl_idname, text="Assign Selected Bones")
 
-	def draw(self, context):
-		rig = context.object
-		layout = self.layout
-		layout.use_property_split = True
-		layout.use_property_decorate = False
-
-		layout.row().prop(self, "operation", expand=True)
-
-		if self.operation == 'REMOVE': 
-			layout.label(text="Selected bones will be unassigned.")
-			return
-
-		layout.separator()
-
-		if self.operation == 'ASSIGN':
-			if len(rig.pose.bone_groups)==0:
-				row = layout.row()
-				row.alert = True
-				row.label(text="No existing bone groups.")
-				return
-			layout.prop_search(self, "existing_group", rig.pose, "bone_groups", text="Bone Group")
-
-			# Draw color options of the chosen group
-			assert self.existing_group != "", "This should've been set in invoke."
-			group = rig.pose.bone_groups.get(self.existing_group)
-			assert group, "How did you manage to select a group which doesn't exist!?"
-
-			layout.row().prop(group, "color_set")
-			split = layout.split(factor=0.4)
-			split.row()
-			row = split.row(align=True)
-			if group.color_set != 'DEFAULT':
-				row.enabled = group.is_custom_color_set
-				row.prop(group.colors, "normal", text="")
-				row.prop(group.colors, "select", text="")
-				row.prop(group.colors, "active", text="")
-
-		elif self.operation == 'NEW':
-			layout.prop(self, "new_group", text="Name")
-
-
-			layout.row().prop(self, "color_preset")
-			split = layout.split(factor=0.4)
-			split.row()
-			row = split.row(align=True)
-			if self.color_preset != 'DEFAULT':
-				row.prop(self, "color_normal", text="")
-				row.prop(self, "color_selected", text="")
-				row.prop(self, "color_active", text="")
-	
 	def invoke(self, context, event):
 		"""Pre-fill useful initial parameters."""
 		groups = context.object.pose.bone_groups
@@ -160,6 +111,61 @@ class AssignBoneGroup(bpy.types.Operator):
 		wm = context.window_manager
 		return wm.invoke_props_dialog(self)
 
+	def draw(self, context):
+		rig = context.object
+		layout = self.layout
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+
+		layout.row().prop(self, "operation", expand=True)
+
+		if self.operation == 'REMOVE': 
+			layout.label(text="Selected bones will be unassigned.")
+			return
+
+		layout.separator()
+
+		if self.operation == 'ASSIGN':
+			group = rig.pose.bone_groups.get(self.existing_group)
+			assert group, "How did you manage to select a group which doesn't exist!?"
+
+			if len(rig.pose.bone_groups)==0:
+				row = layout.row()
+				row.alert = True
+				row.label(text="No existing bone groups.")
+				return
+			row = layout.row(align=True)
+			if not self.rename_existing:
+				row.prop_search(self, "existing_group", rig.pose, "bone_groups", text="Bone Group")
+			else:
+				row.prop(group, "name", icon='GROUP_BONE', text="Bone Group")
+			row.prop(self, "rename_existing", text="", icon="GREASEPENCIL")
+
+			# Draw color options of the chosen group
+			assert self.existing_group != "", "This should've been set in invoke."
+
+			layout.row().prop(group, "color_set")
+			split = layout.split(factor=0.4)
+			split.row()
+			row = split.row(align=True)
+			if group.color_set != 'DEFAULT':
+				row.enabled = group.is_custom_color_set
+				row.prop(group.colors, "normal", text="")
+				row.prop(group.colors, "select", text="")
+				row.prop(group.colors, "active", text="")
+
+		elif self.operation == 'NEW':
+			layout.prop(self, "new_group", text="Name")
+
+			layout.row().prop(self, "color_preset")
+			split = layout.split(factor=0.4)
+			split.row()
+			row = split.row(align=True)
+			if self.color_preset != 'DEFAULT':
+				row.prop(self, "color_normal", text="")
+				row.prop(self, "color_selected", text="")
+				row.prop(self, "color_active", text="")
+
 	def execute(self, context):
 		bones = context.selected_pose_bones
 		groups = context.object.pose.bone_groups
@@ -170,6 +176,8 @@ class AssignBoneGroup(bpy.types.Operator):
 
 			for b in bones:
 				b.bone_group = group
+
+			return {'FINISHED'}
 
 		if self.operation == 'NEW':
 			group = groups.new(name=self.new_group)
@@ -184,11 +192,13 @@ class AssignBoneGroup(bpy.types.Operator):
 			for b in bones:
 				b.bone_group = group
 
+			return {'FINISHED'}
+
 		if self.operation == 'REMOVE':
 			for b in bones:
 				b.bone_group = None
 
-		return {'FINISHED'}
+			return {'FINISHED'}
 
 def register():
 	from bpy.utils import register_class
