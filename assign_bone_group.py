@@ -126,6 +126,10 @@ class AssignBoneGroup(bpy.types.Operator):
 		layout.separator()
 
 		if self.operation == 'ASSIGN':
+			if len(rig.pose.bone_groups) == 0:
+				layout.label(text="There are no existing bone groups.")
+				return
+
 			group = rig.pose.bone_groups.get(self.existing_group)
 			assert group, "How did you manage to select a group which doesn't exist!?"
 
