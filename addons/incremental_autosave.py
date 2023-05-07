@@ -192,6 +192,7 @@ def register_autosave_timer(_dummy=None):
 
 def register():
     bpy.utils.register_class(IncrementalAutoSavePreferences)
+    bpy.app.timers.register(create_autosave)
     bpy.app.handlers.load_pre.append(save_pre_close)
     bpy.app.handlers.load_post.append(register_autosave_timer)
 
