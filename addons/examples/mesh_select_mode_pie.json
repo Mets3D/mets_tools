@@ -1,0 +1,62 @@
+{
+  "version": "1.15.17", 
+  "menus": [
+    [
+      "Mesh Select Mode", 
+      "Mesh", 
+      "ONE", 
+      [
+        [
+          "Edge", 
+          "COMMAND", 
+          "EDGESEL", 
+          "bpy.context.tool_settings.mesh_select_mode = (False,True,False); tag_redraw(area='VIEW_3D', region='WINDOW')"
+        ], 
+        [
+          "Face", 
+          "COMMAND", 
+          "FACESEL", 
+          "bpy.context.tool_settings.mesh_select_mode = (False,False,True); tag_redraw(area='VIEW_3D', region='WINDOW')"
+        ], 
+        [
+          "Vertex", 
+          "COMMAND", 
+          "VERTEXSEL", 
+          "bpy.context.tool_settings.mesh_select_mode = (True,False,False); tag_redraw(area='VIEW_3D', region='WINDOW')"
+        ], 
+        [
+          "All", 
+          "COMMAND", 
+          "OBJECT_DATA", 
+          "bpy.context.tool_settings.mesh_select_mode = (True,True,True); tag_redraw(area='VIEW_3D', region='WINDOW')"
+        ], 
+        [
+          ""
+        ], 
+        [
+          "Edge, Face", 
+          "COMMAND", 
+          "", 
+          "bpy.context.tool_settings.mesh_select_mode = (False,True,True); tag_redraw(area='VIEW_3D', region='WINDOW')"
+        ], 
+        [
+          "Vertex, Edge", 
+          "COMMAND", 
+          "", 
+          "bpy.context.tool_settings.mesh_select_mode = (True,True,False); tag_redraw(area='VIEW_3D', region='WINDOW')"
+        ], 
+        [
+          "Vertex, Face", 
+          "COMMAND", 
+          "", 
+          "bpy.context.tool_settings.mesh_select_mode = (True,False,True); tag_redraw(area='VIEW_3D', region='WINDOW')"
+        ]
+      ], 
+      "PMENU", 
+      "pm?", 
+      "TWEAK", 
+      "", 
+      "Examples"
+    ]
+  ]
+}

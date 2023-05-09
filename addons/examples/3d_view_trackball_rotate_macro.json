@@ -1,0 +1,35 @@
+{
+  "version": "1.15.18", 
+  "menus": [
+    [
+      "Trackball Rotate View Macro", 
+      "3D View", 
+      "ctrl+shift+MIDDLEMOUSE", 
+      [
+        [
+          "Orbit Method = 'TRACKBALL'", 
+          "COMMAND", 
+          "TEXT", 
+          "vrm = C.preferences.inputs.view_rotate_method; C.preferences.inputs.view_rotate_method = 'TRACKBALL'"
+        ], 
+        [
+          "Rotate View", 
+          "COMMAND", 
+          "BLENDER", 
+          "bpy.ops.view3d.rotate()"
+        ], 
+        [
+          "Restore Orbit Method", 
+          "COMMAND", 
+          "TEXT", 
+          "C.preferences.inputs.view_rotate_method = vrm"
+        ]
+      ], 
+      "MACRO", 
+      "m?", 
+      "PRESS", 
+      "", 
+      ""
+    ]
+  ]
+}

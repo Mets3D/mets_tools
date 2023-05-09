@@ -1,0 +1,65 @@
+{
+  "version": "1.15.16", 
+  "menus": [
+    [
+      "Object Mode", 
+      "Object Non-modal", 
+      "TAB", 
+      [
+        [
+          "Object Mode", 
+          "COMMAND", 
+          "OBJECT_DATA", 
+          "bpy.ops.object.mode_set(mode='OBJECT')"
+        ], 
+        [
+          "Edit Mode", 
+          "COMMAND", 
+          "EDITMODE_HLT", 
+          "bpy.ops.object.mode_set(mode='EDIT')"
+        ], 
+        [
+          "Sculpt Mode", 
+          "COMMAND", 
+          "SCULPTMODE_HLT", 
+          "bpy.ops.object.mode_set(mode='SCULPT')"
+        ], 
+        [
+          "Vertex Paint", 
+          "COMMAND", 
+          "VPAINT_HLT", 
+          "bpy.ops.object.mode_set(mode='VERTEX_PAINT')"
+        ], 
+        [
+          "Weight Paint", 
+          "COMMAND", 
+          "WPAINT_HLT", 
+          "bpy.ops.object.mode_set(mode='WEIGHT_PAINT')"
+        ], 
+        [
+          "Texture Paint", 
+          "COMMAND", 
+          "TPAINT_HLT", 
+          "bpy.ops.object.mode_set(mode='TEXTURE_PAINT')"
+        ], 
+        [
+          "Pose Mode", 
+          "COMMAND", 
+          "POSE_HLT", 
+          "bpy.ops.object.mode_set(mode='POSE')"
+        ], 
+        [
+          "Particle Edit", 
+          "COMMAND", 
+          "PARTICLEMODE", 
+          "bpy.ops.object.mode_set(mode='PARTICLE_EDIT')"
+        ]
+      ], 
+      "PMENU", 
+      "pm?", 
+      "TWEAK", 
+      "", 
+      "Examples"
+    ]
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "version": "1.15.16", 
+  "menus": [
+    [
+      "Edge Crease", 
+      "Window", 
+      "", 
+      [
+        [
+          "GET", 
+          "COMMAND", 
+          "", 
+          "import bmesh; obj = C.edit_object; me = obj and obj.type == 'MESH' and obj.data; bm = me and bmesh.from_edit_mesh(me); l = me and bm.edges.layers.crease.verify(); e = me and find_by(bm.edges, \"select\", True); return e[l] if e else 0"
+        ], 
+        [
+          "min", 
+          "", 
+          "0.0"
+        ], 
+        [
+          "max", 
+          "", 
+          "1.0"
+        ], 
+        [
+          "SET", 
+          "COMMAND", 
+          "", 
+          "import bmesh; obj = C.edit_object; me = obj and obj.type == 'MESH' and obj.data; bm = me and bmesh.from_edit_mesh(me); l = me and bm.edges.layers.crease.verify(); me and [e.__setitem__(l, value) for e in bm.edges if e.select]; me and bmesh.update_edit_mesh(me)"
+        ], 
+        [
+          "step", 
+          "", 
+          "5.0"
+        ]
+      ], 
+      "PROPERTY", 
+      "prop?", 
+      "PRESS", 
+      "FLOAT", 
+      "Examples"
+    ], 
+    [
+      "Edge Bevel Weight", 
+      "Window", 
+      "", 
+      [
+        [
+          "step", 
+          "", 
+          "5.0"
+        ], 
+        [
+          "min", 
+          "", 
+          "0.0"
+        ], 
+        [
+          "max", 
+          "", 
+          "1.0"
+        ], 
+        [
+          "GET", 
+          "COMMAND", 
+          "", 
+          "import bmesh; obj = C.edit_object; me = obj and obj.type == 'MESH' and obj.data; bm = me and bmesh.from_edit_mesh(me); l = me and bm.edges.layers.bevel_weight.verify(); e = me and find_by(bm.edges, \"select\", True); return e[l] if e else 0"
+        ], 
+        [
+          "SET", 
+          "COMMAND", 
+          "", 
+          "import bmesh; obj = C.edit_object; me = obj and obj.type == 'MESH' and obj.data; bm = me and bmesh.from_edit_mesh(me); l = me and bm.edges.layers.bevel_weight.verify(); me and [e.__setitem__(l, value) for e in bm.edges if e.select]; me and bmesh.update_edit_mesh(me)"
+        ]
+      ], 
+      "PROPERTY", 
+      "prop?", 
+      "PRESS", 
+      "FLOAT", 
+      "Examples"
+    ]
+  ]
+}

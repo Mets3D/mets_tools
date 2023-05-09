@@ -1,0 +1,81 @@
+{
+  "version": "1.18.6", 
+  "menus": [
+    [
+      "TOPBAR_HT_upper_bar_right", 
+      "Window", 
+      "", 
+      [
+        [
+          "row?"
+        ], 
+        [
+          "Object", 
+          "CUSTOM", 
+          "", 
+          "ao = C.active_object; L.enabled = ao and ao.mode != 'EDIT'; ao and L.template_ID(C.view_layer.objects, \"active\")", 
+          0
+        ], 
+        [
+          "spacer?hsep=SPACER"
+        ], 
+        [
+          "Data", 
+          "CUSTOM", 
+          "", 
+          "ao = C.active_object; L.enabled = ao and ao.mode != 'EDIT'; ao and L.template_ID(ao, \"data\")", 
+          0
+        ], 
+        [
+          "spacer?hsep=SPACER"
+        ], 
+        [
+          "Transform", 
+          "COMMAND", 
+          "#OBJECT_DATAMODE", 
+          "bpy.ops.pme.popup_panel(panel='OBJECT_PT_transform,OBJECT_PT_display,OBJECT_PT_relations', frame=True, area='PROPERTIES')", 
+          0
+        ], 
+        [
+          "3D Cursor", 
+          "COMMAND", 
+          "#GRID", 
+          "bpy.ops.pme.popup_panel(panel='VIEW3D_PT_view3d_cursor,VIEW3D_PT_view3d_properties', frame=True, area='VIEW_3D')", 
+          0
+        ], 
+        [
+          "spacer?hsep=SPACER"
+        ], 
+        [
+          "spacer?hsep=ALIGNER"
+        ], 
+        [
+          "Interactive Panels", 
+          "PROP", 
+          "#WINDOW", 
+          "prefs().interactive_panels", 
+          0
+        ], 
+        [
+          "PME", 
+          "COMMAND", 
+          "", 
+          "bpy.ops.pme.popup_addon_preferences(addon='pie_menu_editor', center=False)", 
+          0
+        ], 
+        [
+          "Show Preferences", 
+          "COMMAND", 
+          "#PREFERENCES", 
+          "bpy.ops.screen.userpref_show()", 
+          0
+        ]
+      ], 
+      "DIALOG", 
+      "pd?pd_panel=2", 
+      "PRESS", 
+      "", 
+      "Examples"
+    ]
+  ]
+}

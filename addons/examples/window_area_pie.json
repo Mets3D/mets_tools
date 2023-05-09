@@ -1,0 +1,79 @@
+{
+  "version": "1.18.6", 
+  "menus": [
+    [
+      "Window Area", 
+      "Window", 
+      "ctrl+SPACE, NONE", 
+      [
+        [
+          "Tools", 
+          "HOTKEY", 
+          "PREFERENCES", 
+          "T", 
+          0
+        ], 
+        [
+          "Properties", 
+          "HOTKEY", 
+          "SETTINGS", 
+          "N", 
+          0
+        ], 
+        [
+          "Header", 
+          "COMMAND", 
+          "TRIA_DOWN", 
+          "r = C.area.regions[0]; sd = C.space_data; on_top = r.y > C.area.y; bpy.ops.screen.region_flip(dict(region=r)) if on_top else None; sd.show_region_header = on_top or not sd.show_region_header", 
+          0
+        ], 
+        [
+          "Header", 
+          "COMMAND", 
+          "TRIA_UP", 
+          "r = C.area.regions[0]; sd = C.space_data; on_top = r.y > C.area.y; bpy.ops.screen.region_flip(dict(region=r)) if not on_top else None; sd.show_region_header = not on_top or not sd.show_region_header", 
+          0
+        ], 
+        [
+          "Maximize", 
+          "COMMAND", 
+          "FULLSCREEN_ENTER", 
+          "bpy.ops.screen.screen_full_area()", 
+          0
+        ], 
+        [
+          "Fullscreen", 
+          "COMMAND", 
+          "MESH_PLANE", 
+          "bpy.ops.screen.screen_full_area(use_hide_panels=True)", 
+          0
+        ], 
+        [
+          "Menus", 
+          "COMMAND", 
+          "COLLAPSEMENU", 
+          "bpy.ops.screen.header_toggle_menus()", 
+          0
+        ], 
+        [
+          "Render View", 
+          "COMMAND", 
+          "RENDER_RESULT", 
+          "bpy.ops.render.view_show()", 
+          0
+        ], 
+        [
+          ""
+        ], 
+        [
+          ""
+        ]
+      ], 
+      "PMENU", 
+      "pm?", 
+      "PRESS", 
+      "", 
+      "Examples"
+    ]
+  ]
+}

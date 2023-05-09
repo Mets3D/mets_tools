@@ -1,0 +1,41 @@
+{
+  "version": "1.15.17", 
+  "menus": [
+    [
+      "Lasso Dissolve", 
+      "Mesh", 
+      "ctrl+oskey+LEFTMOUSE", 
+      [
+        [
+          "Switch to Face Select Mode", 
+          "COMMAND", 
+          "TEXT", 
+          "msm = C.tool_settings.mesh_select_mode[:]; C.tool_settings.mesh_select_mode = (False, False, True)"
+        ], 
+        [
+          "Lasso Select", 
+          "COMMAND", 
+          "BLENDER", 
+          "bpy.ops.view3d.select_lasso()"
+        ], 
+        [
+          "Dissolve Faces", 
+          "COMMAND", 
+          "BLENDER", 
+          "bpy.ops.mesh.dissolve_faces(use_verts=True)"
+        ], 
+        [
+          "Restore Select Mode", 
+          "COMMAND", 
+          "TEXT", 
+          "C.tool_settings.mesh_select_mode = msm"
+        ]
+      ], 
+      "MACRO", 
+      "m?", 
+      "PRESS", 
+      "", 
+      "Examples"
+    ]
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "version": "1.15.16", 
+  "menus": [
+    [
+      "Grid Fill Modal", 
+      "Window", 
+      "", 
+      [
+        [
+          "Grid Fill", 
+          "INVOKE", 
+          "", 
+          "bpy.ops.mesh.fill_grid()"
+        ], 
+        [
+          "On Update", 
+          "UPDATE", 
+          "", 
+          "bpy.ops.ed.undo_redo()"
+        ], 
+        [
+          "Span", 
+          "PROP", 
+          "ctrl+WHEELUPMOUSE;;;;", 
+          "C.active_operator.properties.span"
+        ], 
+        [
+          "Offset", 
+          "PROP", 
+          "WHEELUPMOUSE;;;;", 
+          "C.active_operator.properties.offset"
+        ], 
+        [
+          "Cancel", 
+          "COMMAND", 
+          "RIGHTMOUSE;", 
+          "bpy.ops.ed.undo(); cancel()"
+        ], 
+        [
+          "Cancel", 
+          "COMMAND", 
+          "ESC;", 
+          "bpy.ops.ed.undo(); cancel()"
+        ]
+      ], 
+      "MODAL", 
+      "mo?", 
+      "PRESS", 
+      "", 
+      "Examples"
+    ]
+  ]
+}

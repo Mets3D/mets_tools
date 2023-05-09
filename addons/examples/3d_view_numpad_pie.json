@@ -1,0 +1,65 @@
+{
+  "version": "1.15.17", 
+  "menus": [
+    [
+      "3D View Numpad", 
+      "3D View", 
+      "Q", 
+      [
+        [
+          "Left", 
+          "COMMAND", 
+          "TRIA_LEFT", 
+          "bpy.ops.view3d.view_axis(type='LEFT')"
+        ], 
+        [
+          "Right", 
+          "COMMAND", 
+          "TRIA_RIGHT", 
+          "bpy.ops.view3d.view_axis(type='RIGHT')"
+        ], 
+        [
+          "Bottom", 
+          "COMMAND", 
+          "TRIA_DOWN", 
+          "bpy.ops.view3d.view_axis(type='BOTTOM')"
+        ], 
+        [
+          "Top", 
+          "COMMAND", 
+          "TRIA_UP", 
+          "bpy.ops.view3d.view_axis(type='TOP')"
+        ], 
+        [
+          "Front", 
+          "COMMAND", 
+          "RADIOBUT_ON", 
+          "bpy.ops.view3d.view_axis(type='FRONT')"
+        ], 
+        [
+          "Back", 
+          "COMMAND", 
+          "RADIOBUT_OFF", 
+          "bpy.ops.view3d.view_axis(type='BACK')"
+        ], 
+        [
+          "Camera", 
+          "COMMAND", 
+          "CAMERA_DATA", 
+          "bpy.ops.view3d.view_camera(type='CAMERA')"
+        ], 
+        [
+          "Persp/Ortho", 
+          "COMMAND", 
+          "MESH_GRID", 
+          "bpy.ops.view3d.view_persportho()"
+        ]
+      ], 
+      "PMENU", 
+      "pm?", 
+      "PRESS", 
+      "", 
+      "Examples"
+    ]
+  ]
+}
