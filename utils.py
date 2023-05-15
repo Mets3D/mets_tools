@@ -144,23 +144,23 @@ def find_or_create_bone(armature, bonename, select=True):
 	bone.select = select
 	return bone
 
-def find_or_create_constraint(pb, ctype, name=None):
+def find_or_create_constraint(pb, con_type, name=None):
 	""" Create a constraint on a bone if it doesn't exist yet. 
 		If a constraint with the given type already exists, just return that.
 		If a name was passed, also make sure the name matches before deeming it a match and returning it.
 		pb: Must be a pose bone.
 	"""
-	for c in pb.constraints:
-		if(c.type==ctype):
-			if(name):
-				if(c.name==name):
-					return c
+	for con in pb.constraints:
+		if con.type == con_type:
+			if name:
+				if con.name == name:
+					return con
 			else:
-				return c
-	c = pb.constraints.new(type=ctype)
-	if(name):
-		c.name = name
-	return c
+				return con
+	con = pb.constraints.new(type=con_type)
+	if name:
+		con.name = name
+	return con
 
 def bone_search(armature, search=None, start=None, end=None, edit_bone=False, selected=True):
 	""" Convenience function to get iterables for our for loops. """ #TODO: Could use regex.
@@ -290,12 +290,12 @@ def copy_attributes(from_thing, to_thing, skip=[""], recursive=False):
 	bad_stuff = skip + ['active', 'bl_rna', 'error_location', 'error_rotation']
 	for prop in dir(from_thing):
 		if "__" in prop: continue
-		if(prop in bad_stuff): continue
+		if prop in bad_stuff: continue
 
-		if(hasattr(to_thing, prop)):
+		if hasattr(to_thing, prop):
 			from_value = getattr(from_thing, prop)
 			# Iterables should be copied recursively, except str.
-			if recursive and type(from_value) not in [str]:
+			if recursive and type(from_value) != str:
 				# NOTE: I think This will infinite loop if a CollectionProperty contains a reference to itself!
 				warn = False
 				try:

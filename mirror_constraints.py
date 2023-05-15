@@ -1,7 +1,6 @@
 import bpy
 from . import utils
 from bpy.utils import flip_name
-from bpy.props import BoolProperty
 from bpy.types import Operator, Object, PoseBone, Constraint
 
 class POSE_OT_Symmetrize(Operator):
@@ -29,6 +28,10 @@ class POSE_OT_Symmetrize(Operator):
                 pb.bone.select = False
                 selected_pose_bones.remove(pb)
                 continue
+            else:
+                # Wipe any existing constraints on the opposite side bone.
+                for con in opp_pb.constraints:
+                    remove_constraint_with_drivers(opp_pb, con.name)
 
         bone_names = [pb.name for pb in selected_pose_bones]
         bpy.ops.object.mode_set(mode='EDIT')
@@ -45,26 +48,22 @@ class POSE_OT_Symmetrize(Operator):
             opp_pb = rig.pose.bones.get(flipped_name)
             if not opp_pb:
                 continue
-
-            # Mirror bone layers. NOTE: Symmetrize operator should do this imho, but it doesn't.
-            opp_pb.bone.layers = pb.bone.layers
-
-            if pb != opp_pb:
-                # Mirror drivers on bone properties.
-                mirror_drivers(context.object, pb, opp_pb)
-                # Wipe any existing constraints on the opposite side bone.
-                for con in opp_pb.constraints:
-                    remove_constraint_with_drivers(opp_pb, con.name)
+            # Mirror drivers on bone properties.
+            mirror_drivers(context.object, pb, opp_pb)
 
             # Mirror constraints and drivers on constraint properties.
             for con in pb.constraints:
                 mirror_constraint(rig, pb, con)
 
+            # Mirror bone layers. NOTE: Symmetrize operator should do this imho, but it doesn't.
+            opp_pb.bone.layers = pb.bone.layers
+
+
         return {"FINISHED"}
 
 def remove_constraint_with_drivers(
         pbone: PoseBone,
-        con_name: str
+        con_name: str,
     ):
     armature = pbone.id_data
     con = pbone.constraints.get(con_name)
