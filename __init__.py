@@ -79,7 +79,7 @@ modules = [
 	armature_merge,
 	armature_constraint_vertex_parent,
 	parent_with_armature_constraint,
-	better_bone_extrude
+	better_bone_extrude,
 ]
 
 def register_unregister_modules(modules: List, register: bool):
