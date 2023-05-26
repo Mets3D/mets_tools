@@ -11,11 +11,27 @@ class POSE_OT_Symmetrize(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.object and context.object.mode == 'POSE'
+        if not (context.object and context.object.mode == 'POSE'):
+            return False
+        
+        for bone in (context.selected_bones or context.selected_pose_bones):
+            if bone.name != flip_name(bone.name):
+                return True
+
+        return False
 
     def execute(self, context):
         rig = context.object
         selected_pose_bones = context.selected_pose_bones[:]
+
+        bone_names = [pb.name for pb in selected_pose_bones]
+        bpy.ops.object.mode_set(mode='EDIT')
+        for bone_name in bone_names:
+            eb = rig.data.edit_bones[bone_name]
+            eb.hide = False
+            eb.select = True
+        bpy.ops.armature.symmetrize()
+        bpy.ops.object.mode_set(mode='POSE')
 
         for pb in selected_pose_bones:
             flipped_name = flip_name(pb.name)
@@ -32,15 +48,6 @@ class POSE_OT_Symmetrize(Operator):
                 # Wipe any existing constraints on the opposite side bone.
                 for con in opp_pb.constraints:
                     remove_constraint_with_drivers(opp_pb, con.name)
-
-        bone_names = [pb.name for pb in selected_pose_bones]
-        bpy.ops.object.mode_set(mode='EDIT')
-        for bone_name in bone_names:
-            eb = rig.data.edit_bones[bone_name]
-            eb.hide = False
-            eb.select = True
-        bpy.ops.armature.symmetrize()
-        bpy.ops.object.mode_set(mode='POSE')
 
         for bone_name in bone_names:
             pb = rig.pose.bones[bone_name]

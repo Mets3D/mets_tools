@@ -35,27 +35,31 @@ from typing import List
 import importlib
 from bpy.utils import register_class, unregister_class
 
-from . import create_lightmap_uvs
-from . import make_physics_bones
-from . import cleanup_blend
-from . import join_as_shape_key_by_uvs
-# from . import join_as_shape_key_by_weights
-from . import make_modifiers_consistent
-from . import weighted_normals
-from . import convert_images
-from . import rename_skeleton_to_metsrig
-from . import mirror_constraints
-from . import setup_action_constraints
-from . import armature_apply_scale
-from . import assign_bone_group
-from . import refresh_drivers
-from . import weld_normals
-from . import relink_character_rig
-from . import resync_all_collections
-from . import armature_merge
-from . import armature_constraint_vertex_parent
-from . import parent_with_armature_constraint
-from . import better_bone_extrude
+from . import (
+    bone_parenting_ops,
+    create_lightmap_uvs,
+	make_physics_bones,
+	cleanup_blend,
+	join_as_shape_key_by_uvs,
+	# join_as_shape_key_by_weights,
+	make_modifiers_consistent,
+	weighted_normals,
+	convert_images,
+	rename_skeleton_to_metsrig,
+	mirror_constraints,
+	setup_action_constraints,
+	armature_apply_scale,
+	assign_bone_group,
+	refresh_drivers,
+	weld_normals,
+	relink_character_rig,
+	resync_all_collections,
+	armature_merge,
+	armature_constraint_vertex_parent,
+	parent_with_armature_constraint,
+	better_bone_extrude,
+	bone_parenting_ops,
+)
 
 # Each module is expected to have a register() and unregister() function.
 modules = [
@@ -80,6 +84,7 @@ modules = [
 	armature_constraint_vertex_parent,
 	parent_with_armature_constraint,
 	better_bone_extrude,
+	bone_parenting_ops,
 ]
 
 def register_unregister_modules(modules: List, register: bool):
@@ -98,7 +103,7 @@ def register_unregister_modules(modules: List, register: bool):
 					register_func(c)
 				except Exception as e:
 					un = 'un' if not register else ''
-					print(f"Warning: CloudRig failed to {un}register class: {c.__name__}")
+					print(f"Warning: MetsTools failed to {un}register class: {c.__name__}")
 					print(e)
 
 		if hasattr(m, 'modules'):
