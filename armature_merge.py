@@ -36,18 +36,8 @@ class MergeArmatures(bpy.types.Operator):
 	def execute(self, context):
 		timer = Timer()
 		
-		### Remap Users
-		# Find an Outliner. Needed for the Remap Users operator, for some reason.
-		# outliner = None
-		# for area in context.screen.areas:
-		# 	if area.type=='OUTLINER':
-		# 		outliner = area
-		# if not outliner:
-		# 	self.report({'ERROR'}, "You must have an Outliner open somewhere, don't ask why!")
-		# 	return {'CANCELLED'}
-		
-		# This segfaults. Doing it from the interface doesn't work either (pop-up window doesn't appear...)
-		# bpy.ops.outliner.id_remap({'area' : outliner}, id_type='OBJECT', old_id=armature.name, new_id=target_armature.name)
+		# Remap Users.
+		armature.user_remap(target_armature)
 
 		target_armature = context.object
 		if target_armature.type != 'ARMATURE':
@@ -133,7 +123,8 @@ class MergeArmatures(bpy.types.Operator):
 			timer.tick("Prep")
 
 			# Merge this armature into the target armature.
-			bpy.ops.object.join({'selected_editable_objects' : [armature, target_armature], 'object' : target_armature})
+			with context.temp_override(selected_editable_objects=[armature, target_armature], object=target_armature):
+				bpy.ops.object.join()
 			timer.tick("Join")	# The Join operator itself is taking FOR EVER!!
 
 			# Restore modifier targets

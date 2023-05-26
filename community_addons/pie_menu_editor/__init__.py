@@ -256,9 +256,8 @@ def on_context():
 
     if pr.missing_kms:
         DBG_INIT and logi("%d Missing Keymaps" % len(pr.missing_kms))
-        bpy.ops.pme.wait_keymaps(
-            dict(window=bpy.context.window_manager.windows[0]),
-            'INVOKE_DEFAULT')
+        with bpy.context.temp_override(window=bpy.context.window_manager.windows[0]):
+            bpy.ops.pme.wait_keymaps('INVOKE_DEFAULT')
 
     else:
         compatibility_fixes.fix()
