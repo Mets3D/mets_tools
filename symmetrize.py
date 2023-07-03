@@ -4,21 +4,32 @@ from bpy.utils import flip_name
 from bpy.types import Operator, Object, PoseBone, Constraint
 
 class POSE_OT_Symmetrize(Operator):
-    """Mirror constraints to the opposite of all selected bones."""
+    """Mirror constraints to the opposite of all selected bones"""
     bl_idname = "pose.symmetrize_rigging"
     bl_label = "Symmetrize Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
 
+    poll_fail_reason = ""
+
     @classmethod
     def poll(cls, context):
-        if not (context.object and context.object.mode == 'POSE'):
+        if not context.object or context.object.type != 'ARMATURE':
+            cls.poll_fail_reason = "No active armature"
             return False
-        
+        if not context.object.mode == 'POSE':
+            cls.poll_fail_reason = "Active object must be in pose mode"
+
         for bone in (context.selected_bones or context.selected_pose_bones):
             if bone.name != flip_name(bone.name):
+                cls.poll_fail_reason = ""
                 return True
 
+        cls.poll_fail_reason = "No selected flippable bones"
         return False
+
+    @classmethod
+    def description(cls, context, properties):
+        return cls.poll_fail_reason or cls.__doc__
 
     def execute(self, context):
         rig = context.object
@@ -257,10 +268,17 @@ def mirror_drivers(
         # Copy the driver expression.
         new_d.driver.expression = expression
 
+def draw_menu_entry(self, context):
+    self.layout.separator()
+    self.layout.operator(POSE_OT_Symmetrize.bl_idname, icon='MOD_MIRROR')
+
 def register():
     from bpy.utils import register_class
     register_class(POSE_OT_Symmetrize)
 
+    bpy.types.VIEW3D_MT_pose.append(draw_menu_entry)
+
 def unregister():
     from bpy.utils import unregister_class
     unregister_class(POSE_OT_Symmetrize)
+    bpy.types.VIEW3D_MT_pose.remove(draw_menu_entry)

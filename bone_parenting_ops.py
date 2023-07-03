@@ -10,7 +10,9 @@ def get_active_bone(context):
     elif context.object.mode == 'EDIT':
         return context.active_bone
 
-def get_selected_bones(context, exclude_active=False):
+def get_selected_bones(context, exclude_active=False) -> List[bpy.types.Bone]:
+    if not context.object:
+        return []
     if context.object.mode == 'POSE':
         bones = [pb.bone for pb in context.selected_pose_bones]
     elif context.object.mode == 'EDIT':

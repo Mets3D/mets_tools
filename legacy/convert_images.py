@@ -1,5 +1,11 @@
 import bpy
-from bpy.props import *
+from bpy.props import StringProperty, BoolProperty
+
+"""
+Converts all images of a certain extension referenced by this blend file according to the render settings of the scene.  
+Images must be saved outside of the .blend file.  
+Could also use a better popup probably, WIP.  
+"""
 
 class ConvertImages(bpy.types.Operator):
 	"""Convert images with one or any extension to whatever you have set in your render output settings. Uses Image.save_as_render()"""

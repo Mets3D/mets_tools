@@ -3,6 +3,12 @@ import bmesh
 from bpy.props import *
 from mathutils import Vector
 
+"""
+For when you have two meshes with identical topology and UVs, and want to 
+combine them so you can blend from one to the other with a shape key. 
+Just select both and run the operator.  
+"""
+
 def uv_from_vert_average(uv_layer, v):
 	uv_average = Vector((0.0, 0.0))
 	total = 0.0

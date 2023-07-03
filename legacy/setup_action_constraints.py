@@ -1,5 +1,5 @@
 import bpy
-from . import utils
+from .. import utils
 from bpy.props import EnumProperty, IntProperty, FloatProperty, PointerProperty, BoolProperty, StringProperty
 
 class SetupActionConstraints(bpy.types.Operator):
@@ -91,8 +91,8 @@ class SetupActionConstraints(bpy.types.Operator):
 
 			# Creating Action constraints
 			if(len(constraints)==0):
-				if(		utils.flip_name(b.name) == b.name 
-					and utils.flip_name(self.subtarget) != self.subtarget ):
+				if(		bpy.utils.flip_name(b.name) == b.name 
+					and bpy.utils.flip_name(self.subtarget) != self.subtarget ):
 					# If bone name is unflippable, but target bone name is flippable, split constraint in two.
 					c_l = utils.find_or_create_constraint(b, 'ACTION', constraint_name_left)
 					constraints.append(c_l)
@@ -112,10 +112,10 @@ class SetupActionConstraints(bpy.types.Operator):
 
 				# If bone name indicates a side, force subtarget to that side, if subtarget is flippable.
 				if( b.name.endswith(".L") and self.subtarget.endswith(".R") ):
-					if(utils.flip_name(self.subtarget) != self.subtarget):
+					if(bpy.utils.flip_name(self.subtarget) != self.subtarget):
 						self.subtarget = self.subtarget[:-2]+".L"
 				if( b.name.endswith(".R") and self.subtarget.endswith(".L") ):
-					if(utils.flip_name(self.subtarget) != self.subtarget):
+					if(bpy.utils.flip_name(self.subtarget) != self.subtarget):
 						self.subtarget = self.subtarget[:-2]+".R"
 					
 				# If constraint name indicates a side, force subtarget to that side and set influence to 0.5.

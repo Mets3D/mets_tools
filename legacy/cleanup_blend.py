@@ -1,11 +1,82 @@
 import bmesh
 import bpy
 from bpy.props import *
-from . import utils
-from .utils import EnsureVisible
+from .. import utils
 from math import pi
 
-# TODO: Make sure operators that are meant to operate on ALL objects work (including hidden shit, via utils.EnsureVisible)
+# TODO: Make sure operators that are meant to operate on ALL objects work 
+# 	(including hidden shit, via utils.EnsureVisible)
+
+"""
+
+### Delete Unused Material Slots
+This just calls the built-in "Remove Unused Slots" operator, except it can work on all selected objects, or all objects, instead of just the active object.
+
+### Clean Up Materials
+Deletes unused nodes, centers node graphs, fixes .00x names on materials and textures, sets names and labels for texture nodes, and sets width for texture nodes.
+
+### Clean Up Objects
+Renames object datas to "Data_ObjectName", UV maps to "UVMap" when there is only one, and creates missing vertex groups for Mirror modifier. (eg. when your mesh has a Mirror modifier and Leg.L vertex group exists but Leg.R doesn't)
+
+### Clean Up Meshes
+Unhide All, Removes Doubles, Quadrangulate(Compare UVs), Weight Normals, Seams From Islands.  
+Also removes UV Maps that don't actually contain a UV layout (every UV vertex in default position)
+
+"""
+
+
+class EnsureVisible:
+	"""Ensure an object is visible, then reset it to how it was before."""
+
+	def __init__(self, obj):
+		""" Ensure an object is visible, and create this small object to manage that object's visibility-ensured-ness. """
+		self.obj_name = obj.name
+		self.obj_hide = obj.hide_get()
+		self.obj_hide_viewport = obj.hide_viewport
+		self.temp_coll = None
+
+		space = bpy.context.area.spaces.active
+		if hasattr(space, 'local_view') and space.local_view:
+			bpy.ops.view3d.localview()
+
+		if not obj.visible_get():
+			obj.hide_set(False)
+			obj.hide_viewport = False
+
+		if not obj.visible_get():
+			# If the object is still not visible, we need to move it to a visible collection. To not break other scripts though, we should restore the active collection afterwards.
+			active_coll = bpy.context.collection
+
+			coll_name = "temp_visible"
+			temp_coll = bpy.data.collections.get(coll_name)
+			if not temp_coll:
+				temp_coll = bpy.data.collections.new(coll_name)
+			if coll_name not in bpy.context.scene.collection.children:
+				bpy.context.scene.collection.children.link(temp_coll)
+
+			if obj.name not in temp_coll.objects:
+				temp_coll.objects.link(obj)
+
+			self.temp_coll = temp_coll
+
+			set_active_collection(active_coll)
+
+	def restore(self):
+		"""Restore visibility settings to their original state."""
+		obj = bpy.data.objects.get(self.obj_name)
+		if not obj: return
+
+		obj.hide_set(self.obj_hide)
+		obj.hide_viewport = self.obj_hide_viewport
+
+		# Remove object from temp collection
+		if self.temp_coll and obj.name in self.temp_coll.objects:
+			self.temp_coll.objects.unlink(obj)
+
+			# Delete temp collection if it's empty now.
+			if len(self.temp_coll.objects) == 0:
+				bpy.data.collections.remove(self.temp_coll)
+				self.temp_coll = None
 
 class DeleteUnusedMaterialSlots(bpy.types.Operator):
 	""" Delete material slots that have no faces assigned. """
@@ -305,7 +376,7 @@ class CleanUpObjects(bpy.types.Operator):
 					if(m.type=='MIRROR'):
 						vgs = obj.vertex_groups
 						for vg in vgs:
-							flippedName = utils.flip_name(vg.name)
+							flippedName = bpy.utils.flip_name(vg.name)
 							print(flippedName)
 							if(flippedName not in vgs):
 								obj.vertex_groups.new(name=flippedName)
