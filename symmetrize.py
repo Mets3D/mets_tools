@@ -17,7 +17,8 @@ class POSE_OT_Symmetrize(Operator):
             cls.poll_fail_reason = "No active armature"
             return False
         if not context.object.mode == 'POSE':
-            cls.poll_fail_reason = "Active object must be in pose mode"
+            cls.poll_fail_reason = "Armature must be in pose mode"
+            return False
 
         for bone in (context.selected_bones or context.selected_pose_bones):
             if bone.name != flip_name(bone.name):
