@@ -37,7 +37,6 @@ from bpy.utils import register_class, unregister_class
 
 from . import (
     armature_apply_scale,
-    armature_constraint_parent,
     armature_constraint_vertex_parent,
     armature_merge,
     assign_bone_group,
@@ -50,7 +49,6 @@ from . import (
 # Each module is expected to have a register() and unregister() function.
 modules = [
     armature_apply_scale,
-    armature_constraint_parent,
     armature_constraint_vertex_parent,
     armature_merge,
     assign_bone_group,

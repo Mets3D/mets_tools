@@ -10,6 +10,7 @@ def get_active_bone(context):
     elif context.object.mode == 'EDIT':
         return context.active_bone
 
+
 def get_selected_bones(context, exclude_active=False) -> List[bpy.types.Bone]:
     if not context.object or not context.object.type == 'ARMATURE':
         return []
@@ -17,24 +18,33 @@ def get_selected_bones(context, exclude_active=False) -> List[bpy.types.Bone]:
     if context.object.mode == 'POSE':
         bones = [pb.bone for pb in context.selected_pose_bones]
     elif context.object.mode == 'EDIT':
-        bones =  context.selected_editable_bones
+        bones = context.selected_editable_bones
 
     if exclude_active:
         bones.remove(get_active_bone(context))
 
     return bones
 
+
 class GenericBoneOperator:
     @classmethod
     def poll(cls, context):
-        return context.object and context.object.type == 'ARMATURE' and context.object.mode in {'POSE', 'EDIT'}
+        return (
+            context.object
+            and context.object.type == 'ARMATURE'
+            and context.object.mode in {'POSE', 'EDIT'}
+        )
 
     @staticmethod
     def get_selected_pose_bones(context):
         if context.object.mode == 'POSE':
             return context.selected_pose_bones
         elif context.object.mode == 'EDIT':
-            return [context.object.data.bones.get(eb.name) for eb in context.selected_editable_bones if eb.name in context.object.data.bones]
+            return [
+                context.object.data.bones.get(eb.name)
+                for eb in context.selected_editable_bones
+                if eb.name in context.object.data.bones
+            ]
 
     def affect_bones(self, context) -> List[str]:
         """Returns list of bone names that were actually affected."""
@@ -57,8 +67,10 @@ class GenericBoneOperator:
         """Return the bone's name if it was affected"""
         raise NotImplementedError
 
+
 class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
     """Disconnect selected bones"""
+
     bl_idname = "pose.disconnect_selected"
     bl_label = "Disconnect Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
@@ -85,8 +97,10 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
         self.report({'INFO'}, f'Disconnected {len(affected)} bone{plural}.')
         return {'FINISHED'}
 
+
 class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
     """Unparent selected bones"""
+
     bl_idname = "pose.unparent_selected"
     bl_label = "Unparent Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
@@ -102,8 +116,8 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
         return False
 
     def affect_bone(self, eb) -> bool:
-        if eb.use_connect:
-            eb.use_connect = False
+        if eb.parent:
+            eb.parent = None
             return True
         return False
 
@@ -113,8 +127,10 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
         self.report({'INFO'}, f'Unparented {len(affected)} bone{plural}.')
         return {'FINISHED'}
 
+
 class POSE_OT_delete_bones(GenericBoneOperator, Operator):
     """Delete selected bones"""
+
     bl_idname = "pose.delete_selected"
     bl_label = "Delete Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
@@ -129,8 +145,10 @@ class POSE_OT_delete_bones(GenericBoneOperator, Operator):
         self.report({'INFO'}, f'Deleted {len(affected)} bone{plural}.')
         return {'FINISHED'}
 
+
 class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
     """Parent active bone to all selected bones using Armature constraint"""
+
     bl_idname = "pose.parent_active_to_all_selected"
     bl_label = "Parent Active to All Selected"
     bl_options = {'REGISTER', 'UNDO'}
@@ -169,11 +187,16 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
             target.subtarget = bone.name
 
         plural = "s" if len(arm_con.targets) != 1 else ""
-        self.report({'INFO'}, f'Parented "{active_pb.name}" to {len(arm_con.targets)} bone{plural} using Armature constraint.')
+        self.report(
+            {'INFO'},
+            f'Parented "{active_pb.name}" to {len(arm_con.targets)} bone{plural} using Armature constraint.',
+        )
         return {'FINISHED'}
+
 
 class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
     """Parent selected bones to the active one"""
+
     bl_idname = "pose.parent_selected_to_active"
     bl_label = "Parent Selected Bones To Active"
     bl_options = {'REGISTER', 'UNDO'}
@@ -187,7 +210,6 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         return len(get_selected_bones(context)) > 1 and get_active_bone(context)
 
     def execute(self, context):
-
         rig = context.object
         mode = rig.mode
         bpy.ops.object.mode_set(mode='EDIT')
@@ -199,7 +221,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             if parent.parent == eb:
                 parent.use_connect = False
                 parent.parent = eb.parent
-            if (eb.head-parent.tail).length > 0.0001:
+            if (eb.head - parent.tail).length > 0.0001:
                 eb.use_connect = False
             if self.use_connect:
                 eb.use_connect = True
@@ -207,70 +229,55 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
 
         bpy.ops.object.mode_set(mode=mode)
         plural = "s" if len(bones_to_parent) != 1 else ""
-        self.report({'INFO'}, f'Parented {len(bones_to_parent)} bone{plural} to "{parent_name}".')
+        self.report(
+            {'INFO'},
+            f'Parented {len(bones_to_parent)} bone{plural} to "{parent_name}".',
+        )
         return {'FINISHED'}
+
 
 class POSE_OT_parent_object_to_selected_bones(Operator):
     """Parent object to selected bones"""
+
     bl_idname = "pose.parent_object_to_selected_bones"
-    bl_label = "Parent Object to Selected Bones"
+    bl_label = "Parent Selected Objects to Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        return len(get_selected_bones(context)) > 0
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.prop(context.window_manager, 'bone_parenting_obj_pointer')
+        return (
+            len(get_selected_bones(context)) > 0 and len(context.selected_objects) > 1
+        )
 
     def execute(self, context):
         rig = context.object
-        target_ob = context.window_manager.bone_parenting_obj_pointer
-        if not target_ob:
+        target_objs = [o for o in context.selected_objects if o != rig]
+        if not target_objs:
             return {'CANCELLED'}
 
-        arm_con = None
-        for c in target_ob.constraints:
-            if c.type == 'ARMATURE':
-                c.targets.clear()
-                arm_con = c
-                break
-        if not arm_con:
-            arm_con = target_ob.constraints.new(type='ARMATURE')
-
         bones = get_selected_bones(context, exclude_active=False)
-        for bone in bones:
-            target = arm_con.targets.new()
-            target.target = rig
-            target.subtarget = bone.name
-        target_ob.parent = rig
-        target_ob.parent_type = 'OBJECT'
+        for obj in target_objs:
+            arm_con = None
+            for c in obj.constraints:
+                if c.type == 'ARMATURE':
+                    c.targets.clear()
+                    arm_con = c
+                    break
+            if not arm_con:
+                arm_con = obj.constraints.new(type='ARMATURE')
 
-        plural = 's' if len(bones) != 1 else ''
-        self.report({'INFO'}, f'Parented "{target_ob.name}" to {len(bones)} bone{plural}.')
-        context.window_manager.bone_parenting_obj_pointer = None
+            for bone in bones:
+                target = arm_con.targets.new()
+                target.target = rig
+                target.subtarget = bone.name
+            obj.parent = rig
+            obj.parent_type = 'OBJECT'
+
+        objs = obj.name if len(target_objs) == 1 else f"{len(target_objs)} objects"
+        plural_bone = 's' if len(bones) != 1 else ''
+        self.report({'INFO'}, f'Parented "{objs}" to {len(bones)} bone{plural_bone}.')
         return {'FINISHED'}
 
-@bpy.app.handlers.persistent
-def clear_pointer(context):
-    bpy.context.window_manager.bone_parenting_obj_pointer = None
-
-def register():
-    bpy.types.WindowManager.bone_parenting_obj_pointer = PointerProperty(
-        name="Object", 
-        description="Object to parent to the active bone", 
-        type=Object
-    )
-    bpy.app.handlers.save_pre.append(clear_pointer)
-
-def unregister():
-    del bpy.types.WindowManager.bone_parenting_obj_pointer
-    bpy.app.handlers.save_pre.remove(clear_pointer)
 
 registry = [
     POSE_OT_disconnect_bones,
@@ -278,5 +285,5 @@ registry = [
     POSE_OT_delete_bones,
     POSE_OT_parent_active_to_all_selected,
     POSE_OT_parent_selected_to_active,
-    POSE_OT_parent_object_to_selected_bones
+    POSE_OT_parent_object_to_selected_bones,
 ]
