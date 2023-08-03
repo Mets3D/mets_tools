@@ -2,15 +2,6 @@ from typing import List, Dict, Tuple, Optional
 import bpy
 from bpy.types import KeyConfig, KeyMap, KeyMapItem, Operator
 
-"""
-Conflict resolution behaviours:
-CANCEL: Don't add the hotkey, don't raise an error.
-RAISE: Don't add the hotkey, raise an error.
-FORCE: Add the hotkey anyways, don't raise an error.
-RETURN: Return the conflicting keys.
-
-"""
-
 
 def addon_hotkey_register(
     keymap_name='Window',
@@ -70,11 +61,10 @@ def addon_hotkey_register(
 
     keymap, kmi = py_kmi.register(
         keymap_name=keymap_name,
-
         add_on_conflict=add_on_conflict,
         warn_on_conflict=warn_on_conflict,
         error_on_conflict=error_on_conflict,
-        )
+    )
     return keymap, kmi
 
 
@@ -113,7 +103,6 @@ class PyKeyMapItem:
         self.repeat = repeat
 
         self.op_kwargs = op_kwargs
-
 
     @staticmethod
     def new_from_keymap_item(kmi: KeyMapItem, context=None) -> "PyKeyMapItem":
@@ -169,10 +158,10 @@ class PyKeyMapItem:
         return final_string
 
     def register(
-        self, 
-        context=None, 
-        keymap_name='Window', 
-        *, 
+        self,
+        context=None,
+        keymap_name='Window',
+        *,
         add_on_conflict=True,
         warn_on_conflict=True,
         error_on_conflict=False,
@@ -210,25 +199,24 @@ class PyKeyMapItem:
 
         # Warn or raise error about conflicts.
         if conflicts and (warn_on_conflict or error_on_conflict):
-            message = f"Failed to register KeyMapItem. See conflicting hotkeys below.\n"
-            conflict_info = "\n".join([
-                str(PyKeyMapItem.new_from_keymap_item(kmi))
-                for kmi in conflicts
-            ])
+            message = f"See conflicting hotkeys below.\n"
+            conflict_info = "\n".join(
+                [str(PyKeyMapItem.new_from_keymap_item(kmi)) for kmi in conflicts]
+            )
             message += conflict_info
 
             if error_on_conflict:
-                raise KeyMapException(message)
+                raise KeyMapException("Failed to register KeyMapItem." + message)
             if warn_on_conflict:
-                print(message)
+                print("Warning: Conflicting KeyMapItems. " + message)
 
         return keymap, kmi
 
     def get_conflict_info(
-            self, 
-            keymap_name: str, 
-            context=None, 
-        ) -> List[bpy.types.KeyMapItem]:
+        self,
+        keymap_name: str,
+        context=None,
+    ) -> List[bpy.types.KeyMapItem]:
         """Return whether there are existing conflicting keymaps, or raise an error."""
         if not context:
             context = bpy.context
@@ -240,7 +228,9 @@ class PyKeyMapItem:
 
         kconfs = {('ADDON', wm.keyconfigs.addon), ('USER', wm.keyconfigs.user)}
         for identifier, kconf in kconfs:
-            keymap = kconf.keymaps.find(keymap_name, space_type=space_type, region_type=region_type)
+            keymap = kconf.keymaps.find(
+                keymap_name, space_type=space_type, region_type=region_type
+            )
             if not keymap:
                 continue
 
