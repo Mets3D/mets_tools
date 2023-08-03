@@ -1,3 +1,8 @@
+"""
+This is currently intended to be used with the Pie Menu Editor add-on.
+In future, we could create our own pie menu and hotkey UI.
+"""
+
 import bpy
 from bpy.types import Operator, Object
 from bpy.props import BoolProperty, PointerProperty
