@@ -55,15 +55,16 @@ class GenericBoneOperator:
         """Returns list of bone names that were actually affected."""
         rig = context.object
         mode = rig.mode
+        bone_names = [b.name for b in get_selected_bones(context)]
         if mode != 'EDIT':
             bpy.ops.object.mode_set(mode='EDIT')
 
         affected_bones = []
-        for eb in get_selected_bones(context):
-            name = eb.name
+        for bone_name in bone_names:
+            eb = context.object.data.edit_bones[bone_name]
             was_affected = self.affect_bone(eb)
             if was_affected:
-                affected_bones.append(name)
+                affected_bones.append(bone_name)
 
         bpy.ops.object.mode_set(mode=mode)
         return affected_bones
@@ -141,6 +142,7 @@ class POSE_OT_delete_bones(GenericBoneOperator, Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def affect_bone(self, eb) -> bool:
+        eb.hide = False
         eb.id_data.edit_bones.remove(eb)
         return True
 
