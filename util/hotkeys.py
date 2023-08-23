@@ -17,7 +17,6 @@ def addon_hotkey_register(
     direction='ANY',
     repeat=False,
     op_kwargs={},
-
     add_on_conflict=True,
     warn_on_conflict=True,
     error_on_conflict=False,
@@ -106,6 +105,9 @@ class PyKeyMapItem:
 
     @staticmethod
     def new_from_keymap_item(kmi: KeyMapItem, context=None) -> "PyKeyMapItem":
+        op_kwargs = {}
+        if kmi.properties:
+            op_kwargs = {key: value for key, value in kmi.properties.items()}
         return PyKeyMapItem(
             op_idname=kmi.idname,
             key_id=kmi.type,
@@ -118,9 +120,7 @@ class PyKeyMapItem:
             key_modifier=kmi.key_modifier,
             direction=kmi.direction,
             repeat=kmi.repeat,
-            op_kwargs={
-                key: getattr(kmi.properties, key) for key in kmi.properties.keys()
-            },
+            op_kwargs=op_kwargs,
         )
 
     def check_key_id(self):
@@ -175,13 +175,20 @@ class PyKeyMapItem:
             context = bpy.context
 
         wm = context.window_manager
-        kconf = wm.keyconfigs.addon
-        if not kconf:
+        kconf_addon = wm.keyconfigs.addon
+        if not kconf_addon:
             # This happens when running Blender in background mode.
             return
 
         check_keymap_name(keymap_name)
-        conflicts = self.get_conflict_info(keymap_name, context)
+
+        # Find conflicts.
+        user_km = get_keymap_of_config(wm.keyconfigs.user, keymap_name)
+        if not user_km:
+            conflicts = []
+        else:
+            conflicts = self.find_in_keymap_conflicts(user_km)
+
         kmi = None
         keymap = None
         if not conflicts or add_on_conflict:
@@ -191,7 +198,7 @@ class PyKeyMapItem:
             # If this KeyMap already exists, new() will return the existing one,
             # which is confusing, but ideal.
             space_type, region_type = get_ui_types_of_keymap(keymap_name)
-            keymap = kconf.keymaps.new(
+            keymap = kconf_addon.keymaps.new(
                 name=keymap_name, space_type=space_type, region_type=region_type
             )
 
@@ -208,35 +215,11 @@ class PyKeyMapItem:
             if error_on_conflict:
                 raise KeyMapException("Failed to register KeyMapItem." + message)
             if warn_on_conflict:
-                print("Warning: Conflicting KeyMapItems. " + message)
+                print(
+                    "Warning: Conflicting KeyMapItems: \n" + str(self) + "\n" + message
+                )
 
         return keymap, kmi
-
-    def get_conflict_info(
-        self,
-        keymap_name: str,
-        context=None,
-    ) -> List[bpy.types.KeyMapItem]:
-        """Return whether there are existing conflicting keymaps, or raise an error."""
-        if not context:
-            context = bpy.context
-
-        wm = context.window_manager
-        space_type, region_type = get_ui_types_of_keymap(keymap_name)
-
-        conflicts = []
-
-        kconfs = {('ADDON', wm.keyconfigs.addon), ('USER', wm.keyconfigs.user)}
-        for identifier, kconf in kconfs:
-            keymap = kconf.keymaps.find(
-                keymap_name, space_type=space_type, region_type=region_type
-            )
-            if not keymap:
-                continue
-
-            conflicts.extend(self.find_in_keymap_conflicts(keymap))
-
-        return conflicts
 
     def register_in_keymap(self, keymap: KeyMap) -> Optional[KeyMapItem]:
         """Lower-level function, for registering in a specific KeyMap."""
@@ -454,6 +437,22 @@ class PyKeyMapItem:
         )
 
 
+def get_keymap_of_config(keyconfig: KeyConfig, keymap_name: str) -> Optional[KeyMap]:
+    space_type, region_type = get_ui_types_of_keymap(keymap_name)
+    keymap = keyconfig.keymaps.find(
+        keymap_name, space_type=space_type, region_type=region_type
+    )
+    return keymap
+
+
+def ensure_keymap_in_config(keyconfig, keymap_name: str) -> KeyMap:
+    space_type, region_type = get_ui_types_of_keymap(keymap_name)
+    keymap = keyconfig.keymaps.new(
+        keymap_name, space_type=space_type, region_type=region_type
+    )
+    return keymap
+
+
 def get_enum_values(bpy_type, enum_prop_name: str) -> Dict[str, Tuple[str, str]]:
     """Given a registered EnumProperty's owner and name, return the enum's
     possible states as a dictionary, mapping the enum identifiers to a tuple
@@ -576,3 +575,17 @@ def check_event_type(event_type: str):
             f'"{event_type}" is not a valid event type. Must be one of the above.'
         )
     return is_valid
+
+
+def find_broken_items_of_keymap(keymap: bpy.types.KeyMap):
+    """I encountered one case where kmi.properties.keys() resulted in an error.
+    If that happens again, use this func to troubleshoot.
+    """
+    broken = []
+    for kmi in keymap.keymap_items:
+        try:
+            kmi.properties.keys()
+        except:
+            broken.append(kmi)
+
+    return broken
