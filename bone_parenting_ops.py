@@ -4,14 +4,17 @@ In future, we could create our own pie menu and hotkey UI.
 """
 
 import bpy
-from bpy.types import Operator, Object
-from bpy.props import BoolProperty, PointerProperty
+from bpy.types import Operator
+from bpy.props import BoolProperty
 from typing import List
 
 
 def get_active_bone(context):
     if context.object.mode == 'POSE':
-        return context.active_pose_bone.bone
+        if context.active_pose_bone:
+            return context.active_pose_bone.bone
+        else:
+            return context.active_bone
     elif context.object.mode == 'EDIT':
         return context.active_bone
 
@@ -282,7 +285,7 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
 
         objs = obj.name if len(target_objs) == 1 else f"{len(target_objs)} objects"
         plural_bone = 's' if len(bones) != 1 else ''
-        self.report({'INFO'}, f'Parented "{objs}" to {len(bones)} bone{plural_bone}.')
+        self.report({'INFO'}, f'Parented {objs} to {len(bones)} bone{plural_bone}.')
         return {'FINISHED'}
 
 

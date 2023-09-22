@@ -44,6 +44,7 @@ from . import (
     bone_parenting_ops,
     refresh_drivers,
     symmetrize,
+    object_parenting_pie,
 )
 
 # Each module is expected to have a register() and unregister() function.
@@ -56,6 +57,7 @@ modules = [
     bone_parenting_ops,
     refresh_drivers,
     symmetrize,
+    object_parenting_pie,
 ]
 
 def register_unregister_modules(modules: List, register: bool):
@@ -74,7 +76,7 @@ def register_unregister_modules(modules: List, register: bool):
                     register_func(c)
                 except Exception as e:
                     un = 'un' if not register else ''
-                    print(f"Warning: MetsTools failed to {un}register class: {c.__name__}")
+                    print(f"ERROR: MetsTools failed to {un}register class: {c.__name__}")
                     print(e)
 
         if hasattr(m, 'modules'):
