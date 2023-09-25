@@ -1,10 +1,6 @@
 import bpy
-from bpy import types
-from typing import List, Tuple, Dict, Optional
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import BoolProperty, EnumProperty
 from mathutils import Matrix
-
-from .util import hotkeys
 
 
 def selected_objs_with_parents(context):
@@ -26,14 +22,14 @@ class OBJECT_OT_clear_parent(bpy.types.Operator):
     @classmethod
     def description(cls, context, properties):
         if properties.keep_transform:
-            return "Clear the parent of selected objects, and affect their local-space transformation such that their world-space transformation remains the same after the relationship is cleared"
+            return "Clear the parent of selected objects, while preserving their position in space"
         else:
-            return "Clear the parent of selected objects, without preserving their world-space transforms"
+            return "Clear the parent of selected objects, without affecting their Loc/Rot/Scale values. This may cause the now parentless children to change position"
 
     @classmethod
     def poll(cls, context):
         if not selected_objs_with_parents(context):
-            cls.poll_message_set("No selected objects have parents")
+            cls.poll_message_set("No selected objects have parents.")
             return False
 
         return True
@@ -50,8 +46,8 @@ class OBJECT_OT_clear_parent(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OBJECT_OT_clear_parent_inverse(bpy.types.Operator):
-    """Reset the helper matrix responsible for offsetting the child by the parent's transforms in the moment the parenting relationship was created"""
+class OBJECT_OT_clear_parent_inverse_matrix(bpy.types.Operator):
+    """Preserve the parenting relationship, but clear the correction offset, such that when the child's transforms are reset, it will move to the same position as the parent"""
 
     bl_idname = "object.parent_clear_inverse_matrix_py"
     bl_label = "Clear Parent Inverse Matrix"
@@ -61,14 +57,14 @@ class OBJECT_OT_clear_parent_inverse(bpy.types.Operator):
     def poll(cls, context):
         objs_with_parents = selected_objs_with_parents(context)
         if not objs_with_parents:
-            cls.poll_message_set("No selected objects have parents")
+            cls.poll_message_set("No selected objects have parents.")
             return False
 
         identity_matrix = Matrix.Identity(4)
         if not any(
             [obj.matrix_parent_inverse != identity_matrix for obj in objs_with_parents]
         ):
-            cls.poll_message_set("No selected objects have an inverse matrix set")
+            cls.poll_message_set("No selected objects have a parenting offset set.")
             return False
 
         return True
@@ -79,7 +75,39 @@ class OBJECT_OT_clear_parent_inverse(bpy.types.Operator):
 
         # Report what was done.
         objs_str = objs[0].name if len(objs) == 1 else f"{len(objs)} objects"
-        self.report({'INFO'}, f"Cleared parent inverse matrix of {objs_str}")
+        self.report({'INFO'}, f"Cleared parenting offset of {objs_str}")
+        return {'FINISHED'}
+
+
+class OBJECT_OT_parent_set_simple(bpy.types.Operator):
+    """Parent the selected objects to the active one, while preserving their position in space"""
+
+    bl_idname = "object.parent_set_simple"
+    bl_label = "Set Parent"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        if not len(context.selected_objects) > 1 and context.active_object:
+            cls.poll_message_set(
+                "Only one object is selected. You can't parent an object to itself."
+            )
+            return False
+        return True
+
+    def execute(self, context):
+        parent_ob = context.active_object
+        objs_to_parent = [obj for obj in context.selected_objects if obj != parent_ob]
+
+        bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
+
+        # Report what was done.
+        objs_str = (
+            objs_to_parent[0].name
+            if len(objs_to_parent) == 1
+            else f"{len(objs_to_parent)} objects"
+        )
+        self.report({'INFO'}, f"Parented {objs_str} to {parent_ob.name}")
         return {'FINISHED'}
 
 
@@ -90,7 +118,16 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
     bl_label = "Set Parent (Advanced)"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def get_parent_type_items(self, context):
+    @classmethod
+    def poll(cls, context):
+        if not len(context.selected_objects) > 1 and context.active_object:
+            cls.poll_message_set(
+                "Only one object is selected. You can't parent an object to itself."
+            )
+            return False
+        return True
+
+    def get_parent_method_items(self, context):
         parent_ob = context.active_object
         items = [
             (
@@ -118,8 +155,8 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
             items.append(
                 (
                     'BONE_RELATIVE',
-                    "(Legacy) Bone: " + parent_ob.data.bones.active.name,
-                    """Parent to the armature's active bone. This option is deprecated, please set the "Parent Type" to "Constraint", and choose the Armature Constraint""",
+                    "Bone: " + parent_ob.data.bones.active.name,
+                    """Parent to the armature's active bone. This option is deprecated, please set the "Parent Method" to "Constraint", and choose the Armature Constraint""",
                     'BONE_DATA',
                 )
             )
@@ -136,7 +173,7 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
                 (
                     'FOLLOW',
                     "(Legacy) Follow Path",
-                    """Animate the curve's Evaluation Time, causing all children to move along the path over time. This option is deprecated, please et the "Parent Type" to "Constraint", and choose the Follow Path Constraint""",
+                    """Animate the curve's Evaluation Time, causing all children to move along the path over time. This option is deprecated, please set the "Parent Method" to "Constraint", and choose the Follow Path Constraint""",
                     'CURVE_DATA',
                 )
             )
@@ -168,12 +205,14 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
                 )
             )
 
-        return [(item[0], item[1], item[2], item[3], idx) for idx, item in enumerate(items)]
+        return [
+            (item[0], item[1], item[2], item[3], idx) for idx, item in enumerate(items)
+        ]
 
-    parent_type: EnumProperty(
-        name="Parent Type",
+    parent_method: EnumProperty(
+        name="Parent Method",
         description="Type of parenting behaviour",
-        items=get_parent_type_items,
+        items=get_parent_method_items,
         default=0,
     )
 
@@ -189,7 +228,7 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
             (
                 'CHILD_OF',
                 "Child Of",
-                "Instead of Object parenting, add a Child Of constraint to the children, which stores a hidden Parent Inverse Matrix to create a parenting relationship while preserving the children's world-space transforms without affecting their Loc/Rot/Scale values",
+                "Instead of Object parenting, add a Child Of constraint to the children. This preserves the child's world-space transforms as well as their Loc/Rot/Scale values, by storing a parenting offset in the constraint itself",
                 'CON_CHILDOF',
                 1,
             ),
@@ -225,59 +264,71 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
     vgroup_init_method: EnumProperty(
         name="Initialize Vertex Groups",
         items=[
-            ('NONE', "None", "Do not initialize vertex groups on the child meshes"),
+            (
+                'NONE',
+                "None",
+                "Do not initialize vertex groups on the child meshes",
+                'BLANK1',
+                0,
+            ),
             (
                 'EMPTY_GROUPS',
                 "Empty Groups",
                 "On all child meshes, generate empty vertex groups for each deforming bone of the parent Armature",
-            ),
-            (
-                'ENVELOPE_WEIGHTS',
-                "Weights From Envelopes",
-                "On all child meshes, generate vertex groups using the parent Armature's bone envelopes",
+                'GROUP_VERTEX',
+                1,
             ),
             (
                 'PROXIMITY_WEIGHTS',
-                "Weights By Proximity",
+                "Auto-Weights",
                 "On all child meshes, generate Vertex Groups for the parent Armature's deforming bones, based on the mesh surface's proximity to each bone",
+                'ARMATURE_DATA',
+                2,
+            ),
+            (
+                'ENVELOPE_WEIGHTS',
+                "Auto-Weights (From Envelopes)",
+                "On all child meshes, generate vertex groups using the parent Armature's bone envelopes",
+                'OUTLINER_OB_ARMATURE',
+                3,
             ),
         ],
     )
 
     transform_correction: EnumProperty(
-        name="Transform Correction",
-        description="How to preserve the child's world-space transform, if at all",
+        name="Keep Transform",
+        description="This parent is transformed. This will result in the child moving by the same amount when the relationship is created",
         items=[
             (
                 'NONE',
                 "None",
-                "Simply create the parenting relationship, even if it may cause the children to move in world space",
-                'BLANK1',
+                "Simply create the parenting relationship, even if it may cause the children to be moved",
+                'UNPINNED',
                 0,
             ),
             (
                 'MATRIX_LOCAL',
-                "Local Matrix",
+                "Normal",
                 "After creating the relationship, snap the children back to their original positions. This will affect their Loc/Rot/Scale values",
-                'OPTIONS',
+                'PINNED',
                 1,
             ),
             (
                 'MATRIX_INTERNAL',
-                "Internal Matrix",
-                "After creating the relationship, store the correction in a hidden matrix, so the children can stay where they are in world space, and their Loc/Rot/Scale values remain unaffected",
-                'SNAP_OFF',
+                "Magic Offset",
+                "The child will not move and its Loc/Rot/Scale values won't be affected, even if the parent is transformed. This is done by storing an internal parenting offset value",
+                'SHADERFX',
                 2,
             ),
         ],
-        default='MATRIX_INTERNAL',
+        default='MATRIX_LOCAL',
     )
 
     def invoke(self, context, _event):
         parent_ob = context.active_object
         if parent_ob.type == 'ARMATURE':
-            self.parent_type = 'MODIFIER'
-        
+            self.parent_method = 'MODIFIER'
+
         return context.window_manager.invoke_props_dialog(self, width=400)
 
     def draw(self, context):
@@ -286,45 +337,50 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
         layout.use_property_decorate = False
         parent_ob = context.active_object
 
-        layout.prop(self, 'parent_type')
+        layout.prop(self, 'parent_method')
 
-        if self.parent_type == 'CONSTRAINT':
+        if self.parent_method == 'CONSTRAINT':
             layout.prop(self, 'constraint_type', icon='CONSTRAINT')
-        elif self.parent_type == 'MODIFIER':
+        elif self.parent_method == 'MODIFIER':
             if parent_ob.type == 'ARMATURE':
                 layout.prop(self, 'vgroup_init_method', icon='GROUP_VERTEX')
 
-        if self.parent_type == 'CONSTRAINT' and self.constraint_type != 'ARMATURE':
+        if self.parent_method == 'CONSTRAINT' and self.constraint_type != 'ARMATURE':
             # Skip drawing transform_correction for constraint types where
             # it's irrelevant.
             return
 
-        layout.prop(self, 'transform_correction')
+        if parent_ob.matrix_world != Matrix.Identity(4):
+            # If the parent has any world-space transforms, we offer corrections
+            # for that to be applied to the children, so they don't move.
+            layout.prop(self, 'transform_correction')
 
     def execute(self, context):
         parent_ob = context.active_object
         keep_transform = self.transform_correction == 'MATRIX_INTERNAL'
 
         objs_to_parent = [obj for obj in context.selected_objects if obj != parent_ob]
-        matrix_backups = [obj.matrix_world.copy() for obj in objs_to_parent]
+        matrix_backups = [(obj.matrix_world.copy(), obj.matrix_local.copy()) for obj in objs_to_parent]
 
-        op_parent_type = self.parent_type
+        op_parent_method = self.parent_method
 
-        if self.parent_type == 'MODIFIER':
+        if self.parent_method == 'MODIFIER':
             if parent_ob.type == 'ARMATURE':
-                if self.vgroup_init_method == 'EMPTY_GROUPS':
-                    op_parent_type = 'ARMATURE_NAME'
+                if self.vgroup_init_method == 'NONE':
+                    op_parent_method = 'ARMATURE'
+                elif self.vgroup_init_method == 'EMPTY_GROUPS':
+                    op_parent_method = 'ARMATURE_NAME'
                 elif self.vgroup_init_method == 'ENVELOPE_WEIGHTS':
-                    op_parent_type = 'ARMATURE_ENVELOPE'
+                    op_parent_method = 'ARMATURE_ENVELOPE'
                 elif self.vgroup_init_method == 'PROXIMITY_WEIGHTS':
-                    op_parent_type = 'ARMATURE_AUTO'
+                    op_parent_method = 'ARMATURE_AUTO'
             elif parent_ob.type == 'LATTICE':
-                op_parent_type = 'LATTICE'
+                op_parent_method = 'LATTICE'
             elif parent_ob.type == 'CURVE':
-                op_parent_type = 'CURVE'
-        elif self.parent_type == 'CONSTRAINT':
+                op_parent_method = 'CURVE'
+        elif self.parent_method == 'CONSTRAINT':
             if self.constraint_type == 'FOLLOW_PATH':
-                op_parent_type = 'PATH_CONST'
+                op_parent_method = 'PATH_CONST'
             elif self.constraint_type == 'ARMATURE':
                 return self.parent_with_arm_con(context, keep_transform)
             elif self.constraint_type == 'CHILD_OF':
@@ -332,17 +388,24 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
             elif self.constraint_type == 'COPY_TRANSFORMS':
                 return self.parent_with_copy_transforms_con(context)
 
-        bpy.ops.object.parent_set(type=op_parent_type, keep_transform=keep_transform)
+        bpy.ops.object.parent_set(type=op_parent_method, keep_transform=keep_transform)
 
         if self.transform_correction != 'MATRIX_INTERNAL':
             for obj in objs_to_parent:
                 obj.matrix_parent_inverse = Matrix.Identity(4)
         if self.transform_correction == 'MATRIX_LOCAL':
-            for obj, mat_bkp in zip(objs_to_parent, matrix_backups):
-                obj.matrix_world = mat_bkp
+            for obj, matrices in zip(objs_to_parent, matrix_backups):
+                # Find expected world matrix of this object:
+                # Parent world matrix @ inverted self inverse matrix @ basis matrix
+                obj.matrix_local = matrices[1]
+                obj.matrix_world = matrices[0]
 
         # Report what was done.
-        objs_str = objs_to_parent[0].name if len(objs_to_parent) == 1 else f"{len(objs_to_parent)} objects"
+        objs_str = (
+            objs_to_parent[0].name
+            if len(objs_to_parent) == 1
+            else f"{len(objs_to_parent)} objects"
+        )
         self.report({'INFO'}, f"Parented {objs_str} to {parent_ob.name}")
         return {'FINISHED'}
 
@@ -441,6 +504,7 @@ class OBJECT_OT_parent_set_advanced(bpy.types.Operator):
         self.report({'INFO'}, f"Constrained {objs_str} to {parent_str}")
         return {'FINISHED'}
 
+
 ### Pie Menu UI
 class OBJECT_MT_parenting_pie(bpy.types.Menu):
     # bl_label is displayed at the center of the pie menu
@@ -456,14 +520,16 @@ class OBJECT_MT_parenting_pie(bpy.types.Menu):
         pie = layout.menu_pie()
 
         # <
-        # Clear Parent
-        pie.operator(OBJECT_OT_clear_parent.bl_idname, icon='X').keep_transform = False
+        # Clear Parent (Keep Transform)
+        pie.operator(
+            OBJECT_OT_clear_parent.bl_idname,
+            text="Clear Parent",
+            icon='X',
+        ).keep_transform = True
 
         # >
-        # Set Parent
-        op = pie.operator('object.parent_set', text="Set Parent", icon='CON_CHILDOF')
-        op.type = 'OBJECT'
-        op.keep_transform = True
+        # Set Parent (Keep Transform)
+        pie.operator(OBJECT_OT_parent_set_simple.bl_idname, icon='CON_CHILDOF')
 
         # v
         pie.separator()
@@ -471,35 +537,84 @@ class OBJECT_MT_parenting_pie(bpy.types.Menu):
         # ^
         pie.separator()
 
-        # ^>
-        # Clear Parent (Keep Transform)
+        # <^
+        # Clear Parent
         pie.operator(
             OBJECT_OT_clear_parent.bl_idname,
-            text="Clear Parent (Preserve World Space)",
-            icon='WORLD',
-        ).keep_transform = True
+            text="Clear Parent (Without Correction)",
+            icon='UNLINKED',
+        ).keep_transform = False
 
         # ^>
         # Set Parent (Advanced)
         pie.operator(OBJECT_OT_parent_set_advanced.bl_idname, icon='CON_CHILDOF')
 
-        # v>
+        # <v
         # Clear Inverse
-        pie.operator(OBJECT_OT_clear_parent_inverse.bl_idname, icon='DRIVER_TRANSFORM')
+        pie.operator(
+            OBJECT_OT_clear_parent_inverse_matrix.bl_idname,
+            text="Clear Offset Correction",
+            icon='DRIVER_DISTANCE',
+        )
 
         # v>
         pie.separator()
 
 
+### Header Menu UI
+def draw_new_header_menu(self, context):
+    layout = self.layout
+
+    # Set Parent
+    layout.operator(OBJECT_OT_parent_set_simple.bl_idname, icon='CON_CHILDOF')
+
+    # Set Parent (Advanced)
+    layout.operator(OBJECT_OT_parent_set_advanced.bl_idname, icon='CON_CHILDOF')
+    
+    layout.separator()
+    # <
+    # Clear Parent (Keep Transform)
+    layout.operator(
+        OBJECT_OT_clear_parent.bl_idname,
+        text="Clear Parent",
+        icon='X',
+    ).keep_transform = True
+
+    # Clear Parent (Without Correction)
+    layout.operator(
+        OBJECT_OT_clear_parent.bl_idname,
+        text="Clear Parent (Without Correction)",
+        icon='UNLINKED',
+    ).keep_transform = False
+
+    # Clear Offset Correction (aka Clear Inverse Matrix)
+    layout.operator(
+        OBJECT_OT_clear_parent_inverse_matrix.bl_idname,
+        text="Clear Offset Correction",
+        icon='DRIVER_DISTANCE',
+    )
+
+
+class VIEW3D_MT_object_parent_proposal(bpy.types.Menu):
+    bl_label = 'Parent'
+    bl_idname = 'OBJECT_MT_parenting_pie'
+
 registry = [
     OBJECT_OT_clear_parent,
-    OBJECT_OT_clear_parent_inverse,
+    OBJECT_OT_clear_parent_inverse_matrix,
+    OBJECT_OT_parent_set_simple,
     OBJECT_OT_parent_set_advanced,
     OBJECT_MT_parenting_pie,
 ]
 
 
+def replace_header_draw_func():
+    bpy.types.VIEW3D_MT_object_parent.draw_old = bpy.types.VIEW3D_MT_object_parent.draw
+    bpy.types.VIEW3D_MT_object_parent.draw = draw_new_header_menu
+
 def register():
+    from .util import hotkeys
+
     for keymap_name in ('Object Mode', 'Mesh', 'Pose'):
         hotkeys.addon_hotkey_register(
             op_idname='wm.call_menu_pie',
@@ -509,3 +624,20 @@ def register():
             add_on_conflict=False,
             warn_on_conflict=False,
         )
+
+    replace_header_draw_func()
+
+
+if __name__ == '__main__':
+    # __name__ is __main__ when the script is executed in the text editor.
+
+    wm = bpy.context.window_manager
+    for keymap_name in ('Object Mode', 'Mesh', 'Pose'):
+        km = wm.keyconfigs.addon.keymaps.new(name=keymap_name)
+        kmi = km.keymap_items.new('wm.call_menu_pie', 'P', 'PRESS')
+        kmi.properties.name = OBJECT_MT_parenting_pie.bl_idname
+
+    for cl in registry:
+        bpy.utils.register_class(cl)
+
+    replace_header_draw_func()
