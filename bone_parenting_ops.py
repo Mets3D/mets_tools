@@ -7,6 +7,7 @@ import bpy
 from bpy.types import Operator
 from bpy.props import BoolProperty
 from typing import List
+from bpy.utils import flip_name
 
 
 def get_active_bone(context):
@@ -26,7 +27,9 @@ def get_selected_bones(context, exclude_active=False) -> List[bpy.types.Bone]:
     if context.object.mode == 'POSE':
         bones = [pb.bone for pb in context.selected_pose_bones]
     elif context.object.mode == 'EDIT':
-        bones = context.selected_editable_bones
+        # We can't use context.selected_editable_bones because
+        # it actually includes non-selected bones when use_mirror_x==True.
+        bones = [eb for eb in context.object.data.edit_bones if eb.select]
 
     if exclude_active:
         bones.remove(get_active_bone(context))
@@ -61,6 +64,16 @@ class GenericBoneOperator:
         bone_names = [b.name for b in get_selected_bones(context)]
         if mode != 'EDIT':
             bpy.ops.object.mode_set(mode='EDIT')
+
+        if rig.data.use_mirror_x:
+            for bone_name in bone_names[:]:
+                flipped_name = flip_name(bone_name)
+                if bone_name == flipped_name:
+                    continue
+                flipped_bone = rig.data.bones.get(flipped_name)
+                if not flipped_bone:
+                    continue
+                bone_names.append(flipped_name)
 
         affected_bones = []
         for bone_name in bone_names:
@@ -103,7 +116,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
     def execute(self, context):
         affected = self.affect_bones(context)
         plural = "s" if len(affected) != 1 else ""
-        self.report({'INFO'}, f'Disconnected {len(affected)} bone{plural}.')
+        self.report({'INFO'}, f"Disconnected {len(affected)} bone{plural}.")
         return {'FINISHED'}
 
 
@@ -133,7 +146,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
     def execute(self, context):
         affected = self.affect_bones(context)
         plural = "s" if len(affected) != 1 else ""
-        self.report({'INFO'}, f'Unparented {len(affected)} bone{plural}.')
+        self.report({'INFO'}, f"Unparented {len(affected)} bone{plural}.")
         return {'FINISHED'}
 
 
@@ -152,7 +165,7 @@ class POSE_OT_delete_bones(GenericBoneOperator, Operator):
     def execute(self, context):
         affected = self.affect_bones(context)
         plural = "s" if len(affected) != 1 else ""
-        self.report({'INFO'}, f'Deleted {len(affected)} bone{plural}.')
+        self.report({'INFO'}, f"Deleted {len(affected)} bone{plural}.")
         return {'FINISHED'}
 
 
@@ -219,6 +232,23 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             return False
         return len(get_selected_bones(context)) > 1 and get_active_bone(context)
 
+    def parent_edit_bones(self, parent, bones_to_parent):
+        for eb in bones_to_parent:
+            if parent.parent == eb:
+                # When inverting a parenting relationship (child becomes the parent),
+                # set the old child's parent as the new parent's parent.
+                # Otherwise, the parent will become parentless, which is usually not desired.
+                parent.use_connect = False
+                parent.parent = eb.parent
+            if (eb.head - parent.tail).length > 0.0001:
+                # If use_connect of this child was previously True, but now the parent is
+                # somewhere far away, set that flag to False, so the child doesn't move.
+                eb.use_connect = False
+            if self.use_connect:
+                # If the user explicitly asked for connecting the child to the parent, do so.
+                eb.use_connect = True
+            eb.parent = parent
+
     def execute(self, context):
         rig = context.object
         mode = rig.mode
@@ -227,21 +257,26 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         parent_name = parent.name
 
         bones_to_parent = get_selected_bones(context, exclude_active=True)
-        for eb in bones_to_parent:
-            if parent.parent == eb:
-                parent.use_connect = False
-                parent.parent = eb.parent
-            if (eb.head - parent.tail).length > 0.0001:
-                eb.use_connect = False
-            if self.use_connect:
-                eb.use_connect = True
-            eb.parent = parent
+        print("BONES TO PARENT: ", [eb.name for eb in bones_to_parent])
+        self.parent_edit_bones(parent, bones_to_parent)
+
+        if rig.data.use_mirror_x:
+            flipped_parent = rig.data.edit_bones.get(flip_name(parent.name))
+            if flipped_parent:
+                flipped_bones_to_parent = {
+                    rig.data.edit_bones.get(flip_name(eb.name))
+                    for eb in bones_to_parent
+                }
+                self.parent_edit_bones(flipped_parent, flipped_bones_to_parent)
 
         bpy.ops.object.mode_set(mode=mode)
         plural = "s" if len(bones_to_parent) != 1 else ""
+        message = f'Parented {len(bones_to_parent)} bone{plural} to "{parent_name}".'
+        if rig.data.use_mirror_x:
+            message += "(Symmetrized!)"
         self.report(
             {'INFO'},
-            f'Parented {len(bones_to_parent)} bone{plural} to "{parent_name}".',
+            message,
         )
         return {'FINISHED'}
 
@@ -284,8 +319,8 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
             obj.parent_type = 'OBJECT'
 
         objs = obj.name if len(target_objs) == 1 else f"{len(target_objs)} objects"
-        plural_bone = 's' if len(bones) != 1 else ''
-        self.report({'INFO'}, f'Parented {objs} to {len(bones)} bone{plural_bone}.')
+        plural_bone = "s" if len(bones) != 1 else ""
+        self.report({'INFO'}, f"Parented {objs} to {len(bones)} bone{plural_bone}.")
         return {'FINISHED'}
 
 
