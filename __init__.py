@@ -45,6 +45,7 @@ from . import (
     refresh_drivers,
     symmetrize,
     object_parenting_pie,
+    create_transform_constraint,
 )
 
 # Each module is expected to have a register() and unregister() function.
@@ -58,6 +59,7 @@ modules = [
     refresh_drivers,
     symmetrize,
     object_parenting_pie,
+    create_transform_constraint,
 ]
 
 def register_unregister_modules(modules: List, register: bool):
