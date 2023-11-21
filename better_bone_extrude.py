@@ -2,6 +2,7 @@ import bpy
 from bpy.utils import flip_name
 import re
 
+
 def increment_name(name: str, increment: int) -> str:
     # Increment LAST number in the name.
     # Negative numbers will be clamped to 0.
@@ -11,11 +12,12 @@ def increment_name(name: str, increment: int) -> str:
     numbers_in_name = re.findall(r'\d+', name)
     if not numbers_in_name:
         return name + str(max(0, increment))
-    
+
     last = numbers_in_name[-1]
-    incremented = str( max(0, int(last) + increment) ).zfill(len(last))
+    incremented = str(max(0, int(last) + increment)).zfill(len(last))
     split = name.rsplit(last, 1)
     return incremented.join(split)
+
 
 class Better_Bone_Extrude(bpy.types.Operator):
     bl_idname = "armature.better_extrude"
@@ -26,17 +28,19 @@ class Better_Bone_Extrude(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         b = context.active_bone
-        return context.mode=='EDIT_ARMATURE' and b \
-            and b.select_head != b.select_tail \
-            and len(context.selected_bones)==0
+        return (
+            context.mode == 'EDIT_ARMATURE'
+            and b
+            and b.select_head != b.select_tail
+            and len(context.selected_bones) == 0
+        )
 
     def execute(self, context):
         rig = context.object
         source_bone = context.active_bone
-        name = source_bone.name
 
         # Increment LAST number in the name.
-        source_bone.name = increment_name(source_bone.name)
+        new_name = increment_name(source_bone.name, 1)
 
         # Extrude it!
         bpy.ops.armature.extrude_move()
@@ -55,8 +59,10 @@ class Better_Bone_Extrude(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
 def register():
     bpy.utils.register_class(Better_Bone_Extrude)
+
 
 def unregister():
     bpy.utils.unregister_class(Better_Bone_Extrude)
