@@ -1,6 +1,7 @@
 import bpy
 from bpy.utils import flip_name
 import re
+from .util import hotkeys
 
 
 def increment_name(name: str, increment: int) -> str:
@@ -57,12 +58,28 @@ class Better_Bone_Extrude(bpy.types.Operator):
         # This should happen on its own but it doesn't...?
         new_bone.select_tail = True
 
+        bpy.ops.transform.translate('INVOKE_DEFAULT')
+
         return {'FINISHED'}
+
+
+addon_hotkeys = []
 
 
 def register():
     bpy.utils.register_class(Better_Bone_Extrude)
+    addon_hotkeys.append(
+        hotkeys.addon_hotkey_register(
+            keymap_name='Armature',
+            op_idname=Better_Bone_Extrude.bl_idname,
+            key_id='E',
+            warn_on_conflict=True,
+        )
+    )
 
 
 def unregister():
     bpy.utils.unregister_class(Better_Bone_Extrude)
+
+    for pykmi in addon_hotkeys:
+        pykmi.unregister()
