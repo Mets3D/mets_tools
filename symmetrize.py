@@ -3,8 +3,10 @@ from . import utils
 from bpy.utils import flip_name
 from bpy.types import Operator, Object, PoseBone, Constraint
 
+
 class POSE_OT_Symmetrize(Operator):
     """Mirror constraints to the opposite of all selected bones"""
+
     bl_idname = "pose.symmetrize_rigging"
     bl_label = "Symmetrize Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
@@ -20,7 +22,7 @@ class POSE_OT_Symmetrize(Operator):
             cls.poll_fail_reason = "Armature must be in pose mode"
             return False
 
-        for bone in (context.selected_bones or context.selected_pose_bones):
+        for bone in context.selected_bones or context.selected_pose_bones:
             if bone.name != flip_name(bone.name):
                 cls.poll_fail_reason = ""
                 return True
@@ -49,10 +51,16 @@ class POSE_OT_Symmetrize(Operator):
             flipped_name = flip_name(pb.name)
             opp_pb = rig.pose.bones.get(flipped_name)
             if opp_pb in selected_pose_bones:
-                self.report({'ERROR'}, f'Bone selected on both sides: "{pb.name}". Select only one side to clarify symmetrizing direction')
+                self.report(
+                    {'ERROR'},
+                    f'Bone selected on both sides: "{pb.name}". Select only one side to clarify symmetrizing direction',
+                )
                 return {'CANCELLED'}
             if opp_pb == pb:
-                self.report({'WARNING'}, f'Bone name cannot be flipped: "{pb.name}". Symmetrize will have no effect.')
+                self.report(
+                    {'WARNING'},
+                    f'Bone name cannot be flipped: "{pb.name}". Symmetrize will have no effect.',
+                )
                 pb.bone.select = False
                 selected_pose_bones.remove(pb)
                 continue
@@ -74,16 +82,23 @@ class POSE_OT_Symmetrize(Operator):
             for con in pb.constraints:
                 mirror_constraint(rig, pb, con)
 
-            # Mirror bone layers. NOTE: Symmetrize operator should do this imho, but it doesn't.
-            opp_pb.bone.layers = pb.bone.layers
+            # Mirror bone collections.
+            for coll in opp_pb.bone.collections[:]:
+                coll.unassign(opp_pb)
 
+            for coll in pb.bone.collections:
+                opp_coll = rig.data.collections.get(flip_name(coll.name))
+                if opp_coll:
+                    coll = opp_coll
+                coll.assign(opp_pb)
 
         return {"FINISHED"}
 
+
 def remove_constraint_with_drivers(
-        pbone: PoseBone,
-        con_name: str,
-    ):
+    pbone: PoseBone,
+    con_name: str,
+):
     armature = pbone.id_data
     con = pbone.constraints.get(con_name)
     if not con:
@@ -94,27 +109,24 @@ def remove_constraint_with_drivers(
     if armature.animation_data:
         for fc in armature.animation_data.drivers[:]:
             if (
-                "pose.bones" in fc.data_path and 
-                pbone.name in fc.data_path and
-                "constraints" in fc.data_path and
-                con_name in fc.data_path
+                "pose.bones" in fc.data_path
+                and pbone.name in fc.data_path
+                and "constraints" in fc.data_path
+                and con_name in fc.data_path
             ):
                 armature.animation_data.drivers.remove(fc)
 
-def mirror_constraint(
-        armature: Object,
-        pbone: PoseBone,
-        con: Constraint
-    ):
+
+def mirror_constraint(armature: Object, pbone: PoseBone, con: Constraint):
     """Apply some additional mirroring logic that the Symmetrize operator doesn't do for us."""
     flipped_con_name = flip_name(con.name)
     flipped_bone_name = flip_name(pbone.name)
     opp_pb = armature.pose.bones.get(flipped_bone_name)
 
-    if pbone == opp_pb: 
+    if pbone == opp_pb:
         # Bone name cannot be flipped, so we skip.
         return
-    if pbone == opp_pb and con.name == flipped_con_name: 
+    if pbone == opp_pb and con.name == flipped_con_name:
         # No opposite bone found and the constraint name could not be flipped, so we skip.
         return
 
@@ -122,7 +134,7 @@ def mirror_constraint(
     utils.copy_attributes(con, opp_c, skip=['name'])
     opp_c.name = flipped_con_name
 
-    if con.type=='ACTION' and pbone != opp_pb:
+    if con.type == 'ACTION' and pbone != opp_pb:
         # Need to mirror the curves in the action to the opposite bone.
         # TODO: Something's wrong when the control bone's X translation axis is the global up/down axis.
         action = con.action
@@ -133,17 +145,20 @@ def mirror_constraint(
                 curves.append(cur)
         for cur in curves:
             opp_data_path = cur.data_path.replace(pbone.name, opp_pb.name)
-            
+
             # Nuke opposite curves, just to be safe.
             while True:
                 # While this should never happen, theoretically there can be an unlimited.
                 # number of curves corresponding to a single channel of a single bone.
                 opp_cur = action.fcurves.find(opp_data_path, index=cur.array_index)
-                if not opp_cur: break
+                if not opp_cur:
+                    break
                 action.fcurves.remove(opp_cur)
 
             # Create opposite curve.
-            opp_cur = action.fcurves.new(opp_data_path, index=cur.array_index, action_group=opp_pb.name)
+            opp_cur = action.fcurves.new(
+                opp_data_path, index=cur.array_index, action_group=opp_pb.name
+            )
             utils.copy_attributes(cur, opp_cur, skip=["data_path", "group"])
 
             # Copy keyframes.
@@ -151,62 +166,62 @@ def mirror_constraint(
                 opp_kf = opp_cur.keyframe_points.insert(kf.co[0], kf.co[1])
                 utils.copy_attributes(kf, opp_kf, skip=["data_path"])
                 # Flip X location, Y and Z rotation.
-                if (
-                    ("location" in cur.data_path and cur.array_index == 0) or
-                    ("rotation" in cur.data_path and cur.array_index in [1, 2]) 
+                if ("location" in cur.data_path and cur.array_index == 0) or (
+                    "rotation" in cur.data_path and cur.array_index in [1, 2]
                 ):
-                        opp_kf.co[1] *= -1
-                        opp_kf.handle_left[1] *=-1
-                        opp_kf.handle_right[1] *=-1
+                    opp_kf.co[1] *= -1
+                    opp_kf.handle_left[1] *= -1
+                    opp_kf.handle_right[1] *= -1
 
     elif con.type == 'LIMIT_LOCATION':
         # X: Flipped and inverted.
-        opp_c.min_x = con.max_x *-1
-        opp_c.max_x = con.min_x *-1
+        opp_c.min_x = con.max_x * -1
+        opp_c.max_x = con.min_x * -1
 
     elif con.type == 'DAMPED_TRACK':
         # NOTE: Not sure why this isn't in the Symmetrize operator, I think it always applies?
         axis_mapping = {
-            'TRACK_NEGATIVE_X' : 'TRACK_X',
-            'TRACK_X' : 'TRACK_NEGATIVE_X',
+            'TRACK_NEGATIVE_X': 'TRACK_X',
+            'TRACK_X': 'TRACK_NEGATIVE_X',
         }
         if opp_c.track_axis in axis_mapping.keys():
             opp_c.track_axis = axis_mapping[con.track_axis]
 
     mirror_drivers(armature, pbone, opp_pb, con, opp_c)
 
+
 def mirror_drivers(
-        armature: Object, 
-        from_bone: PoseBone, 
-        to_bone: PoseBone, 
-        from_constraint: Constraint=None, 
-        to_constraint: Constraint=None
-    ):
+    armature: Object,
+    from_bone: PoseBone,
+    to_bone: PoseBone,
+    from_constraint: Constraint = None,
+    to_constraint: Constraint = None,
+):
     """Mirrors all drivers from one bone to another.
-    If from_constraint is specified, to_constraint also must be, and then copy and mirror 
+    If from_constraint is specified, to_constraint also must be, and then copy and mirror
     drivers between constraints instead of bones.
     """
 
-    if not armature.animation_data: 
+    if not armature.animation_data:
         # No drivers to mirror.
         return
 
     for d in armature.animation_data.drivers:
-        if not 'pose.bones["' + from_bone.name + '"]' in d.data_path: 
+        if not 'pose.bones["' + from_bone.name + '"]' in d.data_path:
             # Driver doesn't belong to source bone, skip.
             continue
-        if "constraints[" in d.data_path and not from_constraint: 
+        if "constraints[" in d.data_path and not from_constraint:
             # Driver is on a constraint, but no source constraint was given, skip.
             continue
-        if from_constraint and from_constraint.name not in d.data_path: 
+        if from_constraint and from_constraint.name not in d.data_path:
             # Driver is on a constraint other than the given source constraint, skip.
             continue
 
         ### Copying mirrored driver to target bone.
 
         # Managing drivers through bpy is weird:
-        # Even though bones and constraints have driver_add() and driver_remove() 
-        # functions that take a data path relative to themselves, you can't actually 
+        # Even though bones and constraints have driver_add() and driver_remove()
+        # functions that take a data path relative to themselves, you can't actually
         # access drivers from sub-IDs, only through real IDs, like Objects or Armature datablocks.
 
         data_path_from_bone = d.data_path.split("]", 1)[1]
@@ -218,7 +233,10 @@ def mirror_drivers(
             if data_path_from_constraint.startswith("."):
                 data_path_from_constraint = data_path_from_constraint[1:]
             # Armature constraints need special special treatment...
-            if from_constraint.type == 'ARMATURE' and "targets[" in data_path_from_constraint:
+            if (
+                from_constraint.type == 'ARMATURE'
+                and "targets[" in data_path_from_constraint
+            ):
                 target_idx = int(data_path_from_constraint.split("targets[")[1][0])
                 target = to_constraint.targets[target_idx]
                 # Weight is the only property that can have a driver on an Armature constraint's Target.
@@ -236,13 +254,13 @@ def mirror_drivers(
                 # TODO: This can error sometimes, not sure why yet.
 
         expression = d.driver.expression
-        
+
         # Copy the driver variables.
         for from_var in d.driver.variables:
             to_var = new_d.driver.variables.new()
             to_var.type = from_var.type
             to_var.name = from_var.name
-            
+
             for i in range(len(from_var.targets)):
                 target_bone = from_var.targets[i].bone_target
                 new_target_bone = flip_name(target_bone)
@@ -261,25 +279,30 @@ def mirror_drivers(
                     data_path = data_path.replace("left", "right")
                 elif "right" in data_path:
                     data_path = data_path.replace("right", "left")
-                to_var.targets[i].data_path         = data_path
-                to_var.targets[i].transform_type     = from_var.targets[i].transform_type
-                to_var.targets[i].transform_space     = from_var.targets[i].transform_space
+                to_var.targets[i].data_path = data_path
+                to_var.targets[i].transform_type = from_var.targets[i].transform_type
+                to_var.targets[i].transform_space = from_var.targets[i].transform_space
                 # TODO: If transform is X Rotation, have a "mirror" option, to invert it in the expression. Better yet, detect if the new_target_bone is the opposite of the original.
 
         # Copy the driver expression.
         new_d.driver.expression = expression
 
+
 def draw_menu_entry(self, context):
     self.layout.separator()
     self.layout.operator(POSE_OT_Symmetrize.bl_idname, icon='MOD_MIRROR')
 
+
 def register():
     from bpy.utils import register_class
+
     register_class(POSE_OT_Symmetrize)
 
     bpy.types.VIEW3D_MT_pose.append(draw_menu_entry)
 
+
 def unregister():
     from bpy.utils import unregister_class
+
     unregister_class(POSE_OT_Symmetrize)
     bpy.types.VIEW3D_MT_pose.remove(draw_menu_entry)
