@@ -233,7 +233,9 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         return len(get_selected_bones(context)) > 1 and get_active_bone(context)
 
     def parent_edit_bones(self, parent, bones_to_parent):
+        parent.hide = False
         for eb in bones_to_parent:
+            eb.hide = False
             if parent.parent == eb:
                 # When inverting a parenting relationship (child becomes the parent),
                 # set the old child's parent as the new parent's parent.
@@ -257,7 +259,6 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         parent_name = parent.name
 
         bones_to_parent = get_selected_bones(context, exclude_active=True)
-        print("BONES TO PARENT: ", [eb.name for eb in bones_to_parent])
         self.parent_edit_bones(parent, bones_to_parent)
 
         if rig.data.use_mirror_x:
@@ -267,6 +268,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
                     rig.data.edit_bones.get(flip_name(eb.name))
                     for eb in bones_to_parent
                 }
+                flipped_bones_to_parent = [eb for eb in flipped_bones_to_parent if eb]
                 self.parent_edit_bones(flipped_parent, flipped_bones_to_parent)
 
         bpy.ops.object.mode_set(mode=mode)
