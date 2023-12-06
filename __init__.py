@@ -41,6 +41,7 @@ from . import (
     armature_merge,
     better_delete,
     bone_parenting_ops,
+    object_select_pie,
     refresh_drivers,
     symmetrize,
     object_parenting_pie,
@@ -58,6 +59,7 @@ modules = [
     symmetrize,
     object_parenting_pie,
     create_transform_constraint,
+    object_select_pie,
 ]
 
 
