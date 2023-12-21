@@ -187,6 +187,13 @@ def mirror_constraint(armature: Object, pbone: PoseBone, con: Constraint):
         if opp_c.track_axis in axis_mapping.keys():
             opp_c.track_axis = axis_mapping[con.track_axis]
 
+    elif con.type == 'ARMATURE':
+        for from_tar in con.targets:
+            to_tar = opp_c.targets.new()
+            to_tar.target = from_tar.target
+            to_tar.subtarget = flip_name(from_tar.subtarget)
+            to_tar.weight = from_tar.weight
+
     mirror_drivers(armature, pbone, opp_pb, con, opp_c)
 
 
