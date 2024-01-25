@@ -1,23 +1,5 @@
 # MetsTools addon for Blender
 # Copyright (C) 2019 Demeter Dzadik
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-# TODO
-#    Mirror selected bones (names, transforms, constraints, drivers, settings)
-#     Copy Cloth Settings (for some reason Copy Attributes doesn't do this)
-#    Maybe use Jacques's auto-register.
 
 bl_info = {
     "name": "MetsTools",
@@ -46,6 +28,7 @@ from . import (
     symmetrize,
     object_parenting_pie,
     create_transform_constraint,
+    setup_action_constraints,
 )
 
 # Each module is expected to have a register() and unregister() function.
@@ -60,6 +43,7 @@ modules = [
     object_parenting_pie,
     create_transform_constraint,
     object_select_pie,
+    setup_action_constraints,
 ]
 
 
