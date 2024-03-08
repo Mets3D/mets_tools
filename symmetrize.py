@@ -1,8 +1,10 @@
 import bpy
-from . import utils
-from bpy.utils import flip_name
-from bpy.types import Operator, Object, PoseBone, Constraint
+from typing import Dict
 
+from bpy.types import Operator, Object, PoseBone, Constraint
+from bpy.utils import flip_name
+
+from . import utils
 
 class POSE_OT_Symmetrize(Operator):
     """Mirror constraints to the opposite of all selected bones"""
@@ -11,44 +13,30 @@ class POSE_OT_Symmetrize(Operator):
     bl_label = "Symmetrize Selected Bones"
     bl_options = {'REGISTER', 'UNDO'}
 
-    poll_fail_reason = ""
-
     @classmethod
     def poll(cls, context):
         if not context.object or context.object.type != 'ARMATURE':
-            cls.poll_fail_reason = "No active armature"
+            cls.poll_message_set("No active armature")
             return False
         if not context.object.mode == 'POSE':
-            cls.poll_fail_reason = "Armature must be in pose mode"
+            cls.poll_message_set("Armature must be in pose mode")
             return False
 
         for bone in context.selected_bones or context.selected_pose_bones:
             if bone.name != flip_name(bone.name):
-                cls.poll_fail_reason = ""
                 return True
 
-        cls.poll_fail_reason = "No selected flippable bones"
+        cls.poll_message_set("No selected flippable bones")
         return False
 
-    @classmethod
-    def description(cls, context, properties):
-        return cls.poll_fail_reason or cls.__doc__
-
-    def execute(self, context):
+    def get_symmetrize_bone_mapping(self, context) -> Dict[PoseBone, PoseBone]:
+        bone_map = {}
         rig = context.object
         selected_pose_bones = context.selected_pose_bones[:]
-
-        bone_names = [pb.name for pb in selected_pose_bones]
-        bpy.ops.object.mode_set(mode='EDIT')
-        for bone_name in bone_names:
-            eb = rig.data.edit_bones[bone_name]
-            eb.hide = False
-            eb.select = True
-        bpy.ops.armature.symmetrize()
-        bpy.ops.object.mode_set(mode='POSE')
-
         for pb in selected_pose_bones:
             flipped_name = flip_name(pb.name)
+            if flipped_name == pb.name:
+                continue
             opp_pb = rig.pose.bones.get(flipped_name)
             if opp_pb in selected_pose_bones:
                 self.report(
@@ -62,59 +50,70 @@ class POSE_OT_Symmetrize(Operator):
                     f'Bone name cannot be flipped: "{pb.name}". Symmetrize will have no effect.',
                 )
                 pb.bone.select = False
-                selected_pose_bones.remove(pb)
                 continue
-            else:
-                # Wipe any existing constraints on the opposite side bone.
-                for con in opp_pb.constraints:
-                    remove_constraint_with_drivers(opp_pb, con.name)
-
-        for bone_name in bone_names:
-            pb = rig.pose.bones[bone_name]
-            flipped_name = flip_name(pb.name)
-            opp_pb = rig.pose.bones.get(flipped_name)
             if not opp_pb:
                 continue
-            # Mirror drivers on bone properties.
-            mirror_drivers(context.object, pb, opp_pb)
+            bone_map[pb] = opp_pb
 
-            # Mirror constraints and drivers on constraint properties.
-            for con in pb.constraints:
-                mirror_constraint(rig, pb, con)
+            return bone_map
+
+    def execute(self, context):
+        rig = context.object
+
+        bone_map = self.get_symmetrize_bone_mapping(context)
+        if type(bone_map) == set:
+            return bone_map
+
+        for to_pb in bone_map.values():
+            for to_con in to_pb.constraints:
+                remove_constraint_with_drivers(to_pb, to_con)
+
+        bpy.ops.object.mode_set(mode='EDIT')
+        for pb in bone_map.keys():
+            eb = rig.data.edit_bones[pb.name]
+            eb.hide = False
+            eb.select = True
+        bpy.ops.armature.symmetrize()
+        bpy.ops.object.mode_set(mode='POSE')
+
+        for from_pb, to_pb in bone_map.items():
+            # Mirror drivers on bone properties.
+            mirror_drivers(context.object, from_pb, to_pb)
+
+            # Mirror constraints and their drivers.
+            for from_con in from_pb.constraints:
+                mirror_constraint(rig, from_pb, from_con)
 
             # Mirror bone collections.
-            for coll in opp_pb.bone.collections[:]:
-                coll.unassign(opp_pb)
-
-            for coll in pb.bone.collections:
-                opp_coll = rig.data.collections.get(flip_name(coll.name))
-                if opp_coll:
-                    coll = opp_coll
-                coll.assign(opp_pb)
+            for coll in to_pb.bone.collections[:]:
+                coll.unassign(to_pb)
+            for from_coll in from_pb.bone.collections:
+                to_coll = rig.data.collections.get(flip_name(from_coll.name))
+                if to_coll:
+                    to_coll.assign(to_pb)
+                else:
+                    # Opposite collection doesn't exist, but we gotta assign to something.
+                    from_coll.assign(to_pb)
 
         return {"FINISHED"}
 
 
 def remove_constraint_with_drivers(
     pbone: PoseBone,
-    con_name: str,
+    con: Constraint,
 ):
     armature = pbone.id_data
-    con = pbone.constraints.get(con_name)
     if not con:
         return
 
-    pbone.constraints.remove(con)
-
     if armature.animation_data:
         for fc in armature.animation_data.drivers[:]:
-            if (
-                "pose.bones" in fc.data_path
-                and pbone.name in fc.data_path
-                and "constraints" in fc.data_path
-                and con_name in fc.data_path
+            if fc.data_path.startswith(
+                f'pose.bones["{pbone.name}"].constraints["{con.name}"].'
             ):
                 armature.animation_data.drivers.remove(fc)
+
+    pbone.constraints.remove(con)
 
 
 def mirror_constraint(armature: Object, pbone: PoseBone, con: Constraint):
@@ -130,8 +129,10 @@ def mirror_constraint(armature: Object, pbone: PoseBone, con: Constraint):
         # No opposite bone found and the constraint name could not be flipped, so we skip.
         return
 
-    opp_c = utils.find_or_create_constraint(opp_pb, con.type, flipped_con_name)
-    utils.copy_attributes(con, opp_c, skip=['name'])
+    opp_c = utils.find_or_create_constraint(opp_pb, con.type, con.name)
+    if not opp_c:
+        opp_c = utils.find_or_create_constraint(opp_pb, con.type, flipped_con_name)
+    utils.copy_attributes(con, opp_c, skip=['name', 'subtarget'])
     opp_c.name = flipped_con_name
 
     if con.type == 'ACTION' and pbone != opp_pb:
