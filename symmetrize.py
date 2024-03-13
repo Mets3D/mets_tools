@@ -55,7 +55,7 @@ class POSE_OT_Symmetrize(Operator):
                 continue
             bone_map[pb] = opp_pb
 
-            return bone_map
+        return bone_map
 
     def execute(self, context):
         rig = context.object
