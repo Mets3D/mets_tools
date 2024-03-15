@@ -26,6 +26,35 @@ class OBJECT_OT_unlink_from_scene(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
+class OUTLINER_OT_better_delete(bpy.types.Operator):
+    bl_idname = "outliner.better_delete"
+    bl_label = "Delete Datablocks From File"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.area.type == 'OUTLINER' and context.selected_ids
+
+    def execute(self, context):
+        if context.scene in context.selected_ids:
+            self.report({'ERROR'}, "Cannot delete active Scene.")
+            return {'CANCELLED'}
+        if context.workspace in context.selected_ids:
+            self.report({'ERROR'}, "Cannot delete active Workspace.")
+            return {'CANCELLED'}
+        for id in context.selected_ids:
+            if id.id_type in {'SCREEN', 'WINDOWMANAGER'}:
+                self.report({'ERROR'}, f"Cannot delete type: {id.id_type}")
+                return {'CANCELLED'}
+
+        count = len(context.selected_ids)
+        plural = "s" if count>1 else ""
+        bpy.data.batch_remove(context.selected_ids)
+
+        self.report({'INFO'}, f"Deleted {count} datablock{plural}.")
+        return {'FINISHED'}
+
 def get_objects_to_unlink(context) -> List[bpy.types.Object]:
     if context.area.type == 'OUTLINER':
         selected_objs = [id for id in context.selected_ids if type(id) == bpy.types.Object]
@@ -77,7 +106,7 @@ class OBJECT_MT_delete_pie(bpy.types.Menu):
             return
 
         # >
-        pie.operator('outliner.delete', icon='X', text="Delete From File")
+        pie.operator('outliner.better_delete', icon='X', text="Delete From File")
 
         # V
         pie.operator('outliner.id_operation', text="Unlink From Collection", icon="OUTLINER_COLLECTION").type='UNLINK'
@@ -87,6 +116,7 @@ class OBJECT_MT_delete_pie(bpy.types.Menu):
 
 registry = [
     OBJECT_OT_unlink_from_scene,
+    OUTLINER_OT_better_delete,
     OBJECT_MT_delete_pie
 ]
 
