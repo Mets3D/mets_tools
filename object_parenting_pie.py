@@ -615,7 +615,7 @@ def replace_header_draw_func():
 def register():
     from .util import hotkeys
 
-    for keymap_name in ('Object Mode', 'Mesh', 'Pose'):
+    for keymap_name in ('Object Mode', 'Mesh'):
         hotkeys.addon_hotkey_register(
             op_idname='wm.call_menu_pie',
             keymap_name=keymap_name,
