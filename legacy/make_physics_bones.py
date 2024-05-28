@@ -4,10 +4,6 @@ import mathutils
 import math
 import bmesh
 
-# TODO: This should be turned into a rig element in CloudRigify(although having it as an operator is still neat)
-# TODO: The pin vertex weight should taper off from the beginning to the end of the chain, instead of simply being 1 on the first vertex and 0 everywhere else.
-# 		Then the curvature of that falloff could even be adjusted with a parameter (so 1 would be linear falloff, 2 quadratic, etc) 
-
 def make_physics_bone_chain(armature, bones, pMesh=None):
 	""" Apply physics to a single chain of bones. Armature needs to have clean transforms and be in rest pose.
 		bones: list of bones in the chain, in correct hierarchical order"""
@@ -124,8 +120,6 @@ class MakePhysicsBones(bpy.types.Operator):
 		org_scale = armature.scale[:]
 		armature.scale = (1,1,1)
 		org_mode = armature.mode
-		org_layers = armature.data.layers[:]
-		armature.data.layers = [True]*32
 		
 		org_transform_orientation = bpy.context.scene.transform_orientation_slots[0].type
 		bpy.context.scene.transform_orientation_slots[0].type = 'GLOBAL'
@@ -171,8 +165,7 @@ class MakePhysicsBones(bpy.types.Operator):
 		armature.rotation_quaternion = org_rot_quat
 		armature.scale = org_scale
 		bpy.ops.object.mode_set(mode=org_mode)
-		armature.data.layers = org_layers
-		
+
 		bpy.context.scene.transform_orientation_slots[0].type = org_transform_orientation
 		bpy.context.scene.cursor.location = (org_cursor)
 
@@ -188,3 +181,5 @@ def register():
 def unregister():
 	from bpy.utils import unregister_class
 	unregister_class(MakePhysicsBones)
+
+register()
