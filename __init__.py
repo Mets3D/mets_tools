@@ -25,6 +25,7 @@ from . import (
     object_parenting_pie,
     create_transform_constraint,
     setup_action_constraints,
+    vgroup_merge,
 )
 
 # Each module is expected to have a register() and unregister() function.
@@ -36,6 +37,7 @@ modules = [
     create_transform_constraint,
     object_select_pie,
     setup_action_constraints,
+    vgroup_merge,
 ]
 
 
