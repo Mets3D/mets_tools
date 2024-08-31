@@ -20,7 +20,6 @@ from bpy.utils import register_class, unregister_class
 from . import (
     armature_apply_scale,
     armature_constraint_vertex_parent,
-    object_select_pie,
     refresh_drivers,
     create_transform_constraint,
     setup_action_constraints,
@@ -33,7 +32,6 @@ modules = [
     armature_constraint_vertex_parent,
     refresh_drivers,
     create_transform_constraint,
-    object_select_pie,
     setup_action_constraints,
     vgroup_merge,
 ]
