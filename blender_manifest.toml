@@ -1,0 +1,19 @@
+schema_version = "1.0.0"
+
+id = "metstools"
+version = "0.0.1"
+name = "MetsTools"
+tagline = "Random scripts that are looking for a home in a real add-on"
+maintainer = "Demeter Dzadik"
+type = "add-on"
+website = "https://projects.blender.org/Mets/"
+tags = ["Rigging"]
+
+blender_version_min = "4.2.0"
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+copyright = [
+  "2019-2025 Demeter Dzadik",
+]

@@ -24,6 +24,8 @@ from . import (
     create_transform_constraint,
     setup_action_constraints,
     vgroup_merge,
+    remove_empty_shapekeys,
+    mark_non_deform_bones,
 )
 
 # Each module is expected to have a register() and unregister() function.
@@ -34,6 +36,8 @@ modules = [
     create_transform_constraint,
     setup_action_constraints,
     vgroup_merge,
+    remove_empty_shapekeys,
+    mark_non_deform_bones,
 ]
 
 
