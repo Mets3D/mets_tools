@@ -26,6 +26,7 @@ from . import (
     vgroup_merge,
     remove_empty_shapekeys,
     mark_non_deform_bones,
+    prefs,
 )
 
 # Each module is expected to have a register() and unregister() function.
@@ -38,6 +39,7 @@ modules = [
     vgroup_merge,
     remove_empty_shapekeys,
     mark_non_deform_bones,
+    prefs,
 ]
 
 
