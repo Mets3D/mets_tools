@@ -45,4 +45,7 @@ def register():
     bpy.app.timers.register(force_spaces_timer)
 
 def unregister():
-    bpy.app.timers.unregister(force_spaces_timer)
+    try:
+        bpy.app.timers.unregister(force_spaces_timer)
+    except:
+        pass
