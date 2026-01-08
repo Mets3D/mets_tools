@@ -1,4 +1,3 @@
-import bpy
 from . import utils
 from bpy.props import (
     EnumProperty,
@@ -7,14 +6,18 @@ from bpy.props import (
     BoolProperty,
     StringProperty,
 )
+from bpy.types import VIEW3D_MT_pose_constraints
+from bpy.types import PoseBone, Action, ActionSlot, Operator
+from bpy_extras import anim_utils
+from bpy.utils import flip_name, register_class, unregister_class
 
 
-class SetupActionConstraints(bpy.types.Operator):
+class OBJECT_OT_setup_action_constraints(Operator):
     """Automatically manage action constraints of one action on all bones in an armature."""
 
     bl_idname = "armature.setup_action_constraints"
     bl_label = "Setup Action Constraints"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {"REGISTER", "UNDO"}
 
     transform_channel: EnumProperty(
         name="Transform Channel",
@@ -51,7 +54,22 @@ class SetupActionConstraints(bpy.types.Operator):
     subtarget: StringProperty(name="String Property")
 
     enabled: BoolProperty(name="Enabled", default=True)
-    delete: BoolProperty(name="Delete", default=False)
+    mode: EnumProperty(
+        name="Mode",
+        items=[
+            (
+                "DELETE",
+                "Delete",
+                "Delete Action constraints matching this Action and Slot.",
+            ),
+            (
+                "ENSURE",
+                "Ensure",
+                "Create/Update Action constraints matching this Action and Slot. Remove constraints of bones which are not keyed in this slot.",
+            ),
+        ],
+        default="ENSURE",
+    )
 
     affect: EnumProperty(
         name="Affect Bones",
@@ -65,26 +83,40 @@ class SetupActionConstraints(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return (
-            context.object
-            and context.object.type == 'ARMATURE'
-            and context.object.mode in ['POSE', 'OBJECT']
+            context.active_object
+            and context.active_object.type == "ARMATURE"
+            and context.active_object.mode in ["POSE", "OBJECT"]
         )
+
+    def get_active_action(self, context) -> tuple[Action | None, ActionSlot | None]:
+        obj = context.active_object
+        if not obj:
+            return None, None
+        animdata = obj.animation_data
+        if not animdata:
+            return None, None
+        return animdata.action, animdata.action_slot
 
     def invoke(self, context, event):
         # When the operation is invoked, set the operator's target and action based on the context.
         # If they are found, find the first bone with this action constraint,
         # and pre-fill the operator settings based on that constraint.
-        # TODO: If no constraint is found, put the active bone as the target.
 
         wm = context.window_manager
 
-        action = context.object.animation_data.action
+        rig_ob = context.active_object
+        action, slot = self.get_active_action(context)
 
-        if action and context.object.type == 'ARMATURE':
+        # Initialize operator properties.
+        if action and rig_ob.type == "ARMATURE":
             done = False
-            for b in context.object.pose.bones:
+            for b in rig_ob.pose.bones:
                 for c in b.constraints:
-                    if (c.type == 'ACTION') and (c.action == action):
+                    if (
+                        (c.type == "ACTION")
+                        and (c.action == action)
+                        and c.action_slot == slot
+                    ):
                         self.subtarget = c.subtarget
                         self.frame_start = c.frame_start
                         self.frame_end = c.frame_end
@@ -95,7 +127,6 @@ class SetupActionConstraints(bpy.types.Operator):
                         self.target_space = c.target_space
                         self.transform_channel = c.transform_channel
                         done = True
-                        print("Updated operator values...")
                         break
                 if done:
                     break
@@ -106,172 +137,206 @@ class SetupActionConstraints(bpy.types.Operator):
 
     def draw(self, context):
         layout = self.layout
-
-        layout.row().prop(self, "affect", expand=True)
-
-        layout.prop(self, "delete", text="Delete")
-
-        if not self.delete:
-            layout.prop(self, "enabled", text="Enabled")
-            layout.prop_search(
-                self, "subtarget", context.object.data, "bones", text="Bone"
+        affected_bones = self.get_keyed_bones(context)
+        box = layout.box()
+        header, panel = box.panel("Setup Action: Operation Config")
+        header.label(text="Operation")
+        if panel:
+            animdata = context.active_object.animation_data
+            act_col = panel.column(align=True)
+            act_col.prop(animdata, "action", text="Action")
+            split = act_col.split(factor=0.23)
+            split.label(text="Slot: ")
+            split.template_search(
+                animdata,
+                "action_slot",
+                animdata,
+                "action_suitable_slots",
             )
-        layout.prop(context.object.animation_data, "action", text="Active Action")
 
-        if not self.delete:
-            action_row = layout.row()
-            action_row.prop(self, "frame_start", text="Start")
-            action_row.prop(self, "frame_end", text="End")
+            split = act_col.split(factor=0.23)
+            split.label(text="Bones: ")
+            split.row().prop(self, "affect", expand=True)
 
-            trans_row = layout.row()
-            trans_row.use_property_decorate = False
-            trans_row.prop(self, "target_space", text="")
-            trans_row.prop(self, "transform_channel", text="")
+            split = act_col.split(factor=0.23)
+            split.label(text="Operation: ")
+            split.row().prop(self, "mode", expand=True)
 
-            trans_row2 = layout.row()
-            trans_row2.prop(self, "trans_min")
-            trans_row2.prop(self, "trans_max")
+        layout = layout.box()
+
+        word = "Ensure" if self.mode == "ENSURE" else "Delete"
+        punc = ":" if self.mode == "ENSURE" else "."
+        layout.label(
+            text=f"{word} Action constraint on {len(affected_bones)} bones{punc}",
+            icon="ACTION",
+        )
+
+        if self.mode == "DELETE":
+            return
+
+        icon = "HIDE_OFF" if self.enabled else "HIDE_ON"
+        layout.prop(self, "enabled", text="Enabled", icon=icon)
+        layout.prop_search(
+            self, "subtarget", context.active_object.data, "bones", text="Control Bone"
+        )
+
+        frame_row = layout.row(align=True)
+        frame_row.prop(self, "frame_start", text="Start")
+        frame_row.prop(self, "frame_end", text="End")
+
+        trans_row = layout.row(align=True)
+        trans_row.use_property_decorate = False
+        trans_row.prop(self, "target_space", text="")
+        trans_row.prop(self, "transform_channel", text="")
+
+        trans_row2 = layout.row(align=True)
+        trans_row2.prop(self, "trans_min")
+        trans_row2.prop(self, "trans_max")
+
+    def get_all_bones(self, context) -> list[PoseBone]:
+        rig_ob = context.active_object
+        if self.affect == "ALL":
+            return [b.name for b in rig_ob.pose.bones]
+        else:
+            return [b.name for b in context.selected_pose_bones]
+
+    def get_keyed_bones(self, context) -> list[PoseBone]:
+        rig_ob = context.active_object
+        action = rig_ob.animation_data.action
+        all_bones = self.get_all_bones(context)
+        bones = []
+        action, slot = self.get_active_action(context)
+        channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
+        if not channelbag:
+            return []
+        for fc in channelbag.fcurves:
+            # Extracting bone name from fcurve data path
+            if "pose.bones" in fc.data_path:
+                bone_name = fc.data_path.split('["')[1].split('"]')[0]
+
+                if bone_name not in all_bones:
+                    continue
+
+                bone = rig_ob.pose.bones.get(bone_name)
+                if bone and bone not in bones:
+                    bones.append(bone)
+        return bones
 
     def execute(self, context):
-        # Options
-        armature = context.object
-        action = armature.animation_data.action
-        assert action, "No action was selected."
-        constraint_name = "Action_" + action.name.replace("Rain_", "")
-        constraint_name_left = (
-            "Action_" + action.name.replace("Rain_", "") + ".L"
-        )  # TODO: Hard coded action naming convention.
-        constraint_name_right = "Action_" + action.name.replace("Rain_", "") + ".R"
+        rig_ob = context.active_object
+        action = rig_ob.animation_data.action
+        if not action:
+            self.report({"ERROR"}, "No Action was selected.")
+            return {"CANCELLED"}
+        CON_PREFIX = "Action_"
+        constraint_name = CON_PREFIX + action.name
+        constraint_name_left = CON_PREFIX + action.name + ".L"
+        constraint_name_right = CON_PREFIX + action.name + ".R"
         constraint_names = [
             constraint_name,
             constraint_name_left,
             constraint_name_right,
         ]
 
-        affect_bones = []
-        if self.affect == 'ALL':
-            affect_bones = [b.name for b in armature.pose.bones]
-        else:
-            affect_bones = [b.name for b in context.selected_pose_bones]
+        all_bones = self.get_all_bones(context)
 
         # Getting a list of pose bones on the active armature corresponding to the selected action's keyframes
-        bones = []
-        for fc in action.fcurves:
-            # Extracting bone name from fcurve data path
-            if "pose.bones" in fc.data_path:
-                bone_name = fc.data_path.split('["')[1].split('"]')[0]
-
-                if bone_name not in affect_bones:
-                    continue
-
-                bone = armature.pose.bones.get(bone_name)
-                if bone and bone not in bones:
-                    bones.append(bone)
+        pbones = self.get_keyed_bones(context)
 
         # Adding or updating Action constraint on the bones
-        for b in bones:
-            constraints = [c for c in b.constraints if c.name in constraint_names]
+        for pbone in pbones:
+            constraints = [
+                con for con in pbone.constraints if con.name in constraint_names
+            ]
 
             # Creating Action constraints
             if len(constraints) == 0:
                 if (
-                    bpy.utils.flip_name(b.name) == b.name
-                    and bpy.utils.flip_name(self.subtarget) != self.subtarget
+                    flip_name(pbone.name) == pbone.name
+                    and flip_name(self.subtarget) != self.subtarget
                 ):
                     # If bone name is unflippable, but target bone name is flippable, split constraint in two.
-                    c_l = utils.find_or_create_constraint(
-                        b, 'ACTION', constraint_name_left
+                    con_left = utils.find_or_create_constraint(
+                        pbone, "ACTION", constraint_name_left
                     )
-                    constraints.append(c_l)
-                    c_r = utils.find_or_create_constraint(
-                        b, 'ACTION', constraint_name_right
+                    constraints.append(con_left)
+                    con_right = utils.find_or_create_constraint(
+                        pbone, "ACTION", constraint_name_right
                     )
-                    constraints.append(c_r)
+                    constraints.append(con_right)
                 else:
-                    c = utils.find_or_create_constraint(b, 'ACTION', constraint_name)
-                    c.influence = 1
-                    constraints.append(c)
+                    con = utils.find_or_create_constraint(
+                        pbone, "ACTION", constraint_name
+                    )
+                    con.influence = 1
+                    constraints.append(con)
 
             # Configuring Action constraints
-            for c in constraints:
+            for con in constraints:
                 # TODO: Utils should have a way to detect and set a string to a specific side, rather than only flip. That way we wouldn't have to hard-code and only support .L/.R suffix.
                 # This is done in CloudRig, take the code from there.
                 # TODO: We should abstract constraints just like we did drivers in .definitions, and then let those abstract constraints mirror themselves. Then we can use that mirroring functionality from both here and X Mirror Constraints operator.
 
                 # If bone name indicates a side, force subtarget to that side, if subtarget is flippable.
-                if b.name.endswith(".L") and self.subtarget.endswith(".R"):
-                    if bpy.utils.flip_name(self.subtarget) != self.subtarget:
+                if pbone.name.endswith(".L") and self.subtarget.endswith(".R"):
+                    if flip_name(self.subtarget) != self.subtarget:
                         self.subtarget = self.subtarget[:-2] + ".L"
-                if b.name.endswith(".R") and self.subtarget.endswith(".L"):
-                    if bpy.utils.flip_name(self.subtarget) != self.subtarget:
+                if pbone.name.endswith(".R") and self.subtarget.endswith(".L"):
+                    if flip_name(self.subtarget) != self.subtarget:
                         self.subtarget = self.subtarget[:-2] + ".R"
 
                 # If constraint name indicates a side, force subtarget to that side and set influence to 0.5.
-                if c.name.endswith(".L") and self.subtarget.endswith(".R"):
+                if con.name.endswith(".L") and self.subtarget.endswith(".R"):
                     self.subtarget = self.subtarget[:-2] + ".L"
-                    c.influence = 0.5
-                if c.name.endswith(".R") and self.subtarget.endswith(".L"):
+                    con.influence = 0.5
+                if con.name.endswith(".R") and self.subtarget.endswith(".L"):
                     self.subtarget = self.subtarget[:-2] + ".R"
-                    c.influence = 0.5
+                    con.influence = 0.5
 
-                c.target_space = self.target_space
-                c.transform_channel = self.transform_channel
-                c.target = armature
+                con.target_space = self.target_space
+                con.transform_channel = self.transform_channel
+                con.target = rig_ob
                 if self.subtarget != "":
-                    c.subtarget = self.subtarget
-                c.action = action
-                c.min = self.trans_min
-                c.max = self.trans_max
-                c.frame_start = self.frame_start
-                c.frame_end = self.frame_end
-                c.mute = not self.enabled
+                    con.subtarget = self.subtarget
+                con.action = action
+                con.min = self.trans_min
+                con.max = self.trans_max
+                con.frame_start = self.frame_start
+                con.frame_end = self.frame_end
+                con.mute = not self.enabled
 
         # Deleting superfluous action constraints, if any
-        for bn in affect_bones:
-            b = armature.pose.bones.get(bn)
-            for c in b.constraints:
-                if c.type == 'ACTION':
+        for bn in all_bones:
+            pbone = rig_ob.pose.bones.get(bn)
+            for con in pbone.constraints:
+                if con.type == "ACTION":
                     # If the constraint targets this action
-                    if c.action == action:
+                    if con.action == action:
                         if (
-                            c.name not in constraint_names  # but its name is wrong
-                            or self.delete
-                        ):  # or the user wants to delete it.
-                            print(
-                                "removing because "
-                                + c.name
-                                + " not in "
-                                + str(constraint_names)
-                            )
-                            b.constraints.remove(c)
+                            con.name not in constraint_names  # but its name is wrong.
+                            or self.mode == "DELETE"  # or the user wants to delete it.
+                        ):
+                            pbone.constraints.remove(con)
                             continue
                         # If the name is fine, but there is no associated keyframe
-                        elif b not in bones:
-                            b.constraints.remove(c)
+                        elif pbone not in pbones:
+                            pbone.constraints.remove(con)
                             continue
-                    # Any action constraint with no action
-                    if c.action == None:
-                        b.constraints.remove(c)
-                        continue
-                    # Warn for action constraint with suspicious names
-                    if c.name == "Action" or ".00" in c.name:
-                        print(
-                            "Warning: Suspicious action constraint on bone: "
-                            + b.name
-                            + " constraint: "
-                            + c.name
-                        )
 
-        return {'FINISHED'}
+        word = "Ensured" if self.mode == 'ENSURE' else "Deleted"
+        self.report({'INFO'}, f"{word} Action constraints.")
+        return {"FINISHED"}
+
+
+def draw_button(self, context):
+    self.layout.operator(OBJECT_OT_setup_action_constraints.bl_idname, icon="ACTION")
 
 
 def register():
-    from bpy.utils import register_class
-
-    register_class(SetupActionConstraints)
+    register_class(OBJECT_OT_setup_action_constraints)
+    VIEW3D_MT_pose_constraints.append(draw_button)
 
 
 def unregister():
-    from bpy.utils import unregister_class
-
-    unregister_class(SetupActionConstraints)
+    unregister_class(OBJECT_OT_setup_action_constraints)
+    VIEW3D_MT_pose_constraints.remove(draw_button)
