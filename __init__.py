@@ -26,6 +26,7 @@ from . import (
     vgroup_merge,
     remove_empty_shapekeys,
     mark_non_deform_bones,
+    bone_local_transforms,
     prefs,
 )
 
@@ -39,6 +40,7 @@ modules = [
     vgroup_merge,
     remove_empty_shapekeys,
     mark_non_deform_bones,
+    bone_local_transforms,
     prefs,
 ]
 
